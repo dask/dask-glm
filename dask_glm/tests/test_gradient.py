@@ -6,7 +6,7 @@ import dask.array as da
 import numpy as np
 import pytest
 
-from dask_glm import gradient
+from dask_glm.gradient import gradient
 
 
 def logit(y):
