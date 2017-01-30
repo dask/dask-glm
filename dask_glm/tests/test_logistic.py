@@ -12,8 +12,8 @@ from dask_glm.utils import make_y
     (newton, {'tol': 1e-5}),
     (bfgs, {'tol': 1e-8}),
     (gradient_descent, {'tol': 1e-7}),
-    (proximal_grad, {'tol': 1e-6, 'reg': 'l1'}),
-    (proximal_grad, {'tol': 1e-7, 'reg': 'l2'}),
+    (proximal_grad, {'tol': 1e-6, 'reg': 'l1', 'lamduh': 0.001}),
+    (proximal_grad, {'tol': 1e-7, 'reg': 'l2', 'lamduh': 0.001}),
 ])
 @pytest.mark.parametrize('N', [10000, 100000])
 @pytest.mark.parametrize('nchunks', [1, 10])
