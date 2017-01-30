@@ -335,46 +335,42 @@ def sigmoid(x):
     return 1 / (1 + exp(-x))
 
 
-def logistic_loss(w, X, y):
-    y = y.ravel()
-    z = X.dot(w)
-    yz = y * z
-    idx = yz > 0
-    out = np.zeros_like(yz)
-    out[idx] = np.log(1 + np.exp(-yz[idx]))
-    out[~idx] = (-yz[~idx] + np.log(1 + np.exp(yz[~idx])))
-    out = out.sum()
-    return out
+def logistic_loss(beta, X, y):
+    '''Logistic Loss, evaluated point-wise.'''
+    beta, y = beta.ravel(), y.ravel()
+    Xbeta = X.dot(beta)
+    eXbeta = np.exp(Xbeta)
+    return np.sum(np.log1p(eXbeta)) - np.dot(y, Xbeta)
 
 
-def proximal_logistic_loss(w, X, y, z, u, rho):
-    return logistic_loss(w, X, y) + rho * np.dot(w - z + u, w - z + u)
+def proximal_logistic_loss(beta, X, y, z, u, rho):
+    return logistic_loss(beta, X, y) + rho * np.dot(beta - z + u, beta - z + u)
 
 
-def logistic_gradient(w, X, y):
-    z = X.dot(w)
-    y = y.ravel()
-    z = sigmoid(y * z)
-    z0 = (z - 1) * y
-    grad = X.T.dot(z0)
-    return grad * np.ones(w.shape)
+def logistic_gradient(beta, X, y):
+    '''Logistic gradient, evaluated point-wise.'''
+    beta, y = beta.ravel(), y.ravel()
+    Xbeta = X.dot(beta)
+    p = sigmoid(Xbeta)
+    return X.T.dot(p-y)
 
 
-def proximal_logistic_gradient(w, X, y, z, u, rho):
-    return logistic_gradient(w, X, y) + 2 * rho * (w - z + u)
+def proximal_logistic_gradient(beta, X, y, z, u, rho):
+    return logistic_gradient(beta, X, y) + 2 * rho * (beta - z + u)
 
 
-def local_update(y, X, w, z, u, rho, fprime=proximal_logistic_gradient,
+def local_update(X, y, beta, z, u, rho, fprime=proximal_logistic_gradient,
                  f=proximal_logistic_loss,
                  solver=fmin_l_bfgs_b):
-    w = w.ravel()
+    beta = beta.ravel()
     u = u.ravel()
     z = z.ravel()
     solver_args = (X, y, z, u, rho)
-    w, f, d = solver(f, w, fprime=fprime, args=solver_args, pgtol=1e-10,
+    beta, f, d = solver(f, beta, fprime=fprime, args=solver_args, pgtol=1e-10,
                      maxiter=200,
                      maxfun=250, factr=1e-30)
-    return w.reshape(2, 1)
+
+    return beta
 
 
 # def apply_local_update(X, y, w, z, rho, u):
