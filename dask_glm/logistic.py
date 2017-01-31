@@ -288,46 +288,49 @@ def proximal_grad(X, y, reg='l2', lamduh=0.1, max_steps=100, tol=1e-8):
     return beta
 
 
-def logistic_regression(X, y, alpha, rho, over_relaxation, max_iter=100):
-    N = 5  # something to do with chunks
-    (m, n) = X.shape
+def admm(X, y, lamduh=0.1, rho=1, over_relax=1,
+         max_iter=100, abstol=1e-4, reltol=1e-2):
 
-    z = np.zeros([n, N])
-    a = np.zeros([n, N])  # to become u
+    nchunks = X.npartitions
+    (n, p) = X.shape
+    XD = X.to_delayed().flatten().tolist()
+    yD = y.to_delayed().flatten().tolist()
 
-    # why convert this to a dask array?
-    beta_old = da.from_array(np.zeros([n, N]), chunks=(2, 1))
-    beta = np.zeros((2, 5))
-    u = da.from_array(a, chunks=(2, 1))
-    MAX_ITER = max_iter
-    ABSTOL = 1e-4
-    RELTOL = 1e-2
+    z = np.zeros(p)
+    u = np.array([np.zeros(p) for i in range(nchunks)])
+    betas = np.array([np.zeros(p) for i in range(nchunks)])
 
-    for k in range(MAX_ITER):
-        beta_x = y.map_blocks(local_update, X, beta_old.T, z[:, 0], u.T, rho,
-                              chunks=(5, 2), dtype=float).compute()
-        beta[0, :] = beta_x[0::2].ravel()
-        beta[1, :] = beta_x[1::2].ravel()
-        beta_hat = over_relaxation * beta + (1 - over_relaxation) * z
+    for k in range(max_iter):
+
+        # x-update step
+        new_betas = [delayed(local_update)(xx, yy, bb, z, uu, rho) for
+                     xx, yy, bb, uu in zip(XD, yD, betas, u)]
+        new_betas = np.array(da.compute(*new_betas))
+
+        beta_hat = over_relax * new_betas + (1 - over_relax) * z
+
+        #  z-update step
         zold = z.copy()
-        ztilde = np.mean(beta_hat + a, 1)
+        ztilde = np.mean(beta_hat + np.array(u), axis=0)
+        z = shrinkage(ztilde, lamduh / (rho * nchunks))
 
-        z = shrinkage(ztilde, n * alpha / rho)
+        # u-update step
+        u += beta_hat - z
 
-        z = np.tile(z.transpose(), [N, 1]).transpose()
-        a += rho * (beta_hat - z)
-        u = da.from_array(a, chunks=(2, 1))
-        beta_old = da.from_array(beta, chunks=(2, 1))
-        r_norm = np.linalg.norm(beta - z)
-        s_norm = np.linalg.norm(-1 * rho * (z - zold))
-        eps_pri = np.sqrt(n) * ABSTOL + RELTOL * np.maximum(
-            np.linalg.norm(beta), np.linalg.norm(-z))
-        eps_dual = np.sqrt(n) * ABSTOL + RELTOL * np.linalg.norm(rho * a)
+        # check for convergence
+        primal_res = np.linalg.norm(new_betas - z)
+        dual_res = np.linalg.norm(rho * (z - zold))
 
-        if r_norm < eps_pri and s_norm < eps_dual:
+        eps_pri = np.sqrt(p * nchunks) * abstol + nchunks * reltol * np.maximum(
+            np.linalg.norm(new_betas), np.linalg.norm(z))
+        eps_dual = np.sqrt(p * nchunks) * abstol + \
+            nchunks * reltol * np.linalg.norm(rho * u)
+
+        if primal_res < eps_pri and dual_res < eps_dual:
             print("Converged!", k)
             break
-    return z.mean(1)
+
+    return z.mean(0)
 
 
 # TODO: Dask+Numba JIT
@@ -344,7 +347,8 @@ def logistic_loss(beta, X, y):
 
 
 def proximal_logistic_loss(beta, X, y, z, u, rho):
-    return logistic_loss(beta, X, y) + rho * np.dot(beta - z + u, beta - z + u)
+    return logistic_loss(beta, X, y) + (rho / 2) * np.dot(beta - z + u,
+                                                          beta - z + u)
 
 
 def logistic_gradient(beta, X, y):
@@ -352,11 +356,11 @@ def logistic_gradient(beta, X, y):
     beta, y = beta.ravel(), y.ravel()
     Xbeta = X.dot(beta)
     p = sigmoid(Xbeta)
-    return X.T.dot(p-y)
+    return X.T.dot(p - y)
 
 
 def proximal_logistic_gradient(beta, X, y, z, u, rho):
-    return logistic_gradient(beta, X, y) + 2 * rho * (beta - z + u)
+    return logistic_gradient(beta, X, y) + rho * (beta - z + u)
 
 
 def local_update(X, y, beta, z, u, rho, fprime=proximal_logistic_gradient,
@@ -367,14 +371,10 @@ def local_update(X, y, beta, z, u, rho, fprime=proximal_logistic_gradient,
     z = z.ravel()
     solver_args = (X, y, z, u, rho)
     beta, f, d = solver(f, beta, fprime=fprime, args=solver_args, pgtol=1e-10,
-                     maxiter=200,
-                     maxfun=250, factr=1e-30)
+                        maxiter=200,
+                        maxfun=250, factr=1e-30)
 
     return beta
-
-
-# def apply_local_update(X, y, w, z, rho, u):
-#     return y.map_blocks(local_update, X, w.T, z, u.T, rho, chunks=(5, 2))
 
 
 def shrinkage(x, kappa):
