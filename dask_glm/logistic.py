@@ -55,15 +55,12 @@ def bfgs(X, y, max_iter=500, tol=1e-14):
         # backtracking line search
         lf = func
         old_Xbeta = Xbeta
-        stepSize, _, _, func = delayed(compute_stepsize, nout=4)(beta,
-                                                                 step,
-                                                                 Xbeta,
-                                                                 Xstep,
-                                                                 y,
-                                                                 func,
-                                                                 backtrackMult=backtrackMult,
-                                                                 armijoMult=armijoMult,
-                                                                 stepSize=stepSize)
+        stepSize, _, _, func = compute_stepsize_dask(beta, step,
+                                                     Xbeta, Xstep,
+                                                     y, func,
+                                                     backtrackMult=backtrackMult,
+                                                     armijoMult=armijoMult,
+                                                     stepSize=stepSize)
 
         beta, stepSize, Xbeta, gradient, lf, func, step, Xstep = persist(
             beta, stepSize, Xbeta, gradient, lf, func, step, Xstep)
@@ -129,12 +126,13 @@ def compute_stepsize_dask(beta, step, Xbeta, Xstep, y, curr_val, stepSize=1.0,
                           armijoMult=0.1, backtrackMult=0.1):
     beta, step, Xbeta, Xstep, y, curr_val = persist(beta, step, Xbeta, Xstep, y, curr_val)
     obeta, oXbeta = beta, Xbeta
-    (steplen,) = compute((step ** 2).sum())
+    (step,) = compute(step)
+    steplen = (step ** 2).sum()
     lf = curr_val
     func = 0
     for ii in range(100):
         beta = obeta - stepSize * step
-        if ii and compute((beta == obeta).all())[0]:
+        if ii and (beta == obeta).all():
             stepSize = 0
             break
 
