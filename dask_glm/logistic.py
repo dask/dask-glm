@@ -151,18 +151,24 @@ def gradient_descent(X, y, max_steps=100, tol=1e-14):
         gradient = X.T.dot(eXbeta / e1 - y)
         Xgradient = X.dot(gradient)
 
-        Xbeta, eXbeta, func, gradient, Xgradient = da.compute(
-            Xbeta, eXbeta, func, gradient, Xgradient)
-
         # backtracking line search
         lf = func
-        stepSize, beta, Xbeta, func = compute_stepsize(beta, gradient,
-                                                       Xbeta, Xgradient,
-                                                       y_local, func,
-                                                       **{
-                                                           'backtrackMult': backtrackMult,
-                                                           'armijoMult': armijoMult,
-                                                           'stepSize': stepSize})
+        stepSize, _, _, func = delayed(compute_stepsize, nout=4)(beta, gradient,
+                                                Xbeta, Xgradient,
+                                                y, func,
+                                                backtrackMult=backtrackMult,
+                                                armijoMult=armijoMult,
+                                                stepSize=stepSize)
+
+        beta, stepSize, Xbeta, gradient, lf, func, gradient, Xgradient = persist(
+            beta, stepSize, Xbeta, gradient, lf, func, gradient, Xgradient)
+
+        stepSize, lf, func, gradient = compute(stepSize, lf, func, gradient)
+
+        beta = beta - stepSize * gradient # tiny bit of repeat work here to avoid communication
+        Xbeta = Xbeta - stepSize * Xgradient
+
+
         if stepSize == 0:
             print('No more progress')
             break
