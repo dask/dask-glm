@@ -1,7 +1,6 @@
 from __future__ import absolute_import, division, print_function
 
 from dask import delayed, persist, compute
-from time import sleep
 import numpy as np
 import dask.array as da
 from scipy.optimize import fmin_l_bfgs_b
@@ -186,7 +185,7 @@ def gradient_descent(X, y, max_steps=100, tol=1e-14):
 
         stepSize, lf, func, gradient = compute(stepSize, lf, func, gradient)
 
-        beta = beta - stepSize * gradient # tiny bit of repeat work here to avoid communication
+        beta = beta - stepSize * gradient  # tiny bit of repeat work here to avoid communication
         Xbeta = Xbeta - stepSize * Xgradient
 
         if stepSize == 0:
