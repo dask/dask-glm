@@ -41,6 +41,35 @@ def compute_stepsize_dask(beta, step, Xbeta, Xstep, y, curr_val,
     return stepSize, beta, Xbeta, func
 
 
+def compute_loss_grad(beta, X, y, family=Logistic):
+    """
+    Compute the loss and gradient, as defined on ``family``
+    with parameters ``beta``.
+
+    Parameters
+    ----------
+    beta : np.array or da.array
+    X : da.array
+    y : da.array
+    family : Family
+
+    Returns
+    -------
+    loss, gradient : (float, np.array)
+
+    Notes
+    -----
+    Useful for combining with ``scipy.minimize``
+    """
+    Xbeta = X.dot(beta)
+
+    loss_fn = family.loglike(Xbeta, y)
+    gradient_fn = family.gradient(Xbeta, X, y)
+
+    loss, gradient = compute(loss_fn, gradient_fn)
+    return loss, gradient.copy()
+
+
 def gradient_descent(X, y, max_steps=100, tol=1e-14, family=Logistic):
     '''Michael Grant's implementation of Gradient Descent.'''
 
