@@ -1,7 +1,9 @@
 from __future__ import absolute_import, division, print_function
 
+import inspect
+import sys
+
 import dask.array as da
-from dask.utils import package_of
 import numpy as np
 from multipledispatch import dispatch
 
@@ -143,7 +145,24 @@ def accuracy_score(y_true, y_pred):
     return (y_true == y_pred).mean()
 
 
-import sparse
-@dispatch(sparse.COO)
-def exp(x):
-    return np.exp(x.todense())
+try:
+    import sparse
+except ImportError:
+    pass
+else:
+    @dispatch(sparse.COO)
+    def exp(x):
+        return np.exp(x.todense())
+
+
+def package_of(obj):
+    """ Return package containing object's definition
+
+    Or return None if not found
+    """
+    # http://stackoverflow.com/questions/43462701/get-package-of-python-object/43462865#43462865
+    mod = inspect.getmodule(obj)
+    if not mod:
+        return
+    base, _sep, _stem = mod.__name__.partition('.')
+    return sys.modules[base]
