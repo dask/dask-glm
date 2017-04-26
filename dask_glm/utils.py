@@ -121,7 +121,7 @@ def add_intercept(X):
 def add_intercept(X):
     if np.isnan(np.sum(X.shape)):
         raise NotImplementedError("Can not add intercept to array with "
-                "unknown chunk shape")
+                                  "unknown chunk shape")
     j, k = X.chunks
     o = da.ones((X.shape[0], 1), chunks=(j, 1))
     # TODO: Needed this `.rechunk` for the solver to work
