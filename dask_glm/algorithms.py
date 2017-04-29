@@ -185,8 +185,6 @@ def admm(X, y, regularizer=L1, lamduh=0.1, rho=1, over_relax=1,
 
     if isinstance(X, da.Array):
         XD = X.to_delayed().tolist()
-        if len(XD[0]) == 1:
-            XD = [x[0] for x in XD]
     else:
         XD = [X]
 
@@ -237,10 +235,12 @@ def maybe_compute(x):
 
 
 def local_update(X, y, beta, z, u, rho, f, fprime, solver=fmin_l_bfgs_b):
-    if isinstance(X, list):
+    if len(X) > 1:
         X = [da.from_array(x, chunks=x.shape, name=False,
                            getitem=operator.getitem) for x in X]
         X = da.concatenate(X, axis=1)
+    else:
+        X = X[0]
 
     f2 = toolz.compose(maybe_compute, f)
     fprime2 = toolz.compose(maybe_compute, fprime)
