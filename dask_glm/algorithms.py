@@ -15,12 +15,15 @@ proximal_grad     X          X    X       X            X        .    .          
 
 from __future__ import absolute_import, division, print_function
 
-from dask import delayed, persist, compute
 import functools
-import numpy as np
-import dask.array as da
-from scipy.optimize import fmin_l_bfgs_b
+import operator
 
+import dask
+from dask import delayed, persist, compute
+import dask.array as da
+import numpy as np
+from scipy.optimize import fmin_l_bfgs_b
+import toolz
 
 from dask_glm.utils import dot, exp, log1p
 from dask_glm.families import Logistic
@@ -173,15 +176,20 @@ def admm(X, y, regularizer=L1, lamduh=0.1, rho=1, over_relax=1,
     f = create_local_f(pointwise_loss)
     fprime = create_local_gradient(pointwise_gradient)
 
-    nchunks = getattr(X, 'npartitions', 1)
-    # nchunks = X.npartitions
+    try:
+        nchunks = len(X.chunks[0])
+    except AttributeError:  # NumPy array input
+        nchunks = 1
+
     (n, p) = X.shape
-    # XD = X.to_delayed().flatten().tolist()
-    # yD = y.to_delayed().flatten().tolist()
+
     if isinstance(X, da.Array):
-        XD = X.rechunk((None, X.shape[-1])).to_delayed().flatten().tolist()
+        XD = X.to_delayed().tolist()
+        if len(XD[0]) == 1:
+            XD = [x[0] for x in XD]
     else:
         XD = [X]
+
     if isinstance(y, da.Array):
         yD = y.rechunk((None, y.shape[-1])).to_delayed().flatten().tolist()
     else:
@@ -219,19 +227,29 @@ def admm(X, y, regularizer=L1, lamduh=0.1, rho=1, over_relax=1,
             reltol * np.linalg.norm(rho * u)
 
         if primal_res < eps_pri and dual_res < eps_dual:
-            print("Converged!", k)
             break
 
     return z
 
 
+def maybe_compute(x):
+    return dask.compute(x)[0]
+
+
 def local_update(X, y, beta, z, u, rho, f, fprime, solver=fmin_l_bfgs_b):
+    if isinstance(X, list):
+        X = [da.from_array(x, chunks=x.shape, name=False,
+                           getitem=operator.getitem) for x in X]
+        X = da.concatenate(X, axis=1)
+
+    f2 = toolz.compose(maybe_compute, f)
+    fprime2 = toolz.compose(maybe_compute, fprime)
 
     beta = beta.ravel()
     u = u.ravel()
     z = z.ravel()
     solver_args = (X, y, z, u, rho)
-    beta, f, d = solver(f, beta, fprime=fprime, args=solver_args,
+    beta, f, d = solver(f2, beta, fprime=fprime2, args=solver_args,
                         maxiter=200,
                         maxfun=250)
 
@@ -371,14 +389,16 @@ def proximal_grad(X, y, regularizer=L1, lamduh=0.1, family=Logistic,
                     break
             stepSize *= backtrackMult
         if stepSize == 0:
-            print('No more progress')
+            if verbose:
+                print('No more progress')
             break
         df /= max(func, lf)
         db = 0
         if verbose:
             print('%2d  %.6e %9.2e  %.2e  %.1e' % (k + 1, func, df, db, stepSize))
         if df < tol:
-            print('Converged')
+            if verbose:
+                print('Converged')
             break
         stepSize *= stepGrowth
         backtrackMult = nextBacktrackMult

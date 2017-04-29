@@ -87,18 +87,20 @@ def test_basic_unreg_descent(func, kwargs, N, nchunks, family):
 ])
 @pytest.mark.parametrize('N', [1000])
 @pytest.mark.parametrize('nchunks', [1, 10])
+@pytest.mark.parametrize('mchunks', [1, 2])
 @pytest.mark.parametrize('family', [Logistic, Normal])
 @pytest.mark.parametrize('lam', [0.01, 1.2, 4.05])
 @pytest.mark.parametrize('reg', [L1, L2])
-def test_basic_reg_descent(func, kwargs, N, nchunks, family, lam, reg):
+def test_basic_reg_descent(func, kwargs, N, nchunks, mchunks, family, lam, reg):
     beta = np.random.normal(size=2)
     M = len(beta)
-    X = da.random.random((N, M), chunks=(N // nchunks, M))
+    X = da.random.random((N, M), chunks=(N // nchunks, M // mchunks))
     y = make_y(X, beta=np.array(beta), chunks=(N // nchunks,))
 
     X, y = persist(X, y)
 
-    result = func(X, y, family=family, lamduh=lam, regularizer=reg, **kwargs)
+    with dask.set_options(get=dask.get):  # for easy debugging when errors occur
+        result = func(X, y, family=family, lamduh=lam, regularizer=reg, **kwargs)
     test_vec = np.random.normal(size=2)
 
     f = reg.add_reg_f(family.pointwise_loss, lam)
