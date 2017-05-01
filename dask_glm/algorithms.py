@@ -230,10 +230,6 @@ def admm(X, y, regularizer=L1, lamduh=0.1, rho=1, over_relax=1,
     return z
 
 
-def maybe_compute(x):
-    return dask.compute(x)[0]
-
-
 def local_update(X, y, beta, z, u, rho, f, fprime, solver=fmin_l_bfgs_b):
     if len(X) > 1:
         X = [da.from_array(x, chunks=x.shape, name=False,
@@ -242,16 +238,17 @@ def local_update(X, y, beta, z, u, rho, f, fprime, solver=fmin_l_bfgs_b):
     else:
         X = X[0]
 
-    f2 = toolz.compose(maybe_compute, f)
-    fprime2 = toolz.compose(maybe_compute, fprime)
+    def f2(x, *args):
+        f_eval = f(x, *args)
+        fprime_eval = fprime(x, *args)
+        f_eval, fprime_eval = dask.compute(f_eval, fprime_eval)
+        return f_eval, fprime_eval
 
     beta = beta.ravel()
     u = u.ravel()
     z = z.ravel()
     solver_args = (X, y, z, u, rho)
-    beta, f, d = solver(f2, beta, fprime=fprime2, args=solver_args,
-                        maxiter=200,
-                        maxfun=250)
+    beta, f, d = solver(f2, beta, args=solver_args, maxiter=200, maxfun=250)
 
     return beta
 
