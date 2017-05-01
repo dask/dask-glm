@@ -30,6 +30,18 @@ def test_add_intercept_dask():
     assert_eq(result, expected)
 
 
+def test_add_intercept_unknown():
+    dd = pytest.importorskip('dask.dataframe')
+    X = dd.from_array(da.from_array(np.zeros((4, 4)), chunks=(2, 4))).values
+    result = utils.add_intercept(X)
+    expected = da.from_array(np.array([
+        [0, 0, 0, 0, 1],
+        [0, 0, 0, 0, 1],
+        [0, 0, 0, 0, 1],
+        [0, 0, 0, 0, 1],
+    ], dtype=X.dtype), chunks=2)
+    assert_eq(result, expected)
+
 def test_sparse():
     sparse = pytest.importorskip('sparse')
     from sparse.utils import assert_eq
