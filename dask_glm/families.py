@@ -72,7 +72,7 @@ class Poisson(object):
     def loglike(Xbeta, y):
         eXbeta = exp(Xbeta)
         yXbeta = y*Xbeta
-        return (yXbeta - eXbeta).sum()
+        return (eXbeta - yXbeta ).sum()
 
     @staticmethod
     def pointwise_loss(beta, X, y):
