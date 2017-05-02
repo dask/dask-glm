@@ -8,6 +8,7 @@ import numpy as np
 from multipledispatch import dispatch
 
 
+@dispatch(np.ndarray)
 def sigmoid(x):
     '''Sigmoid function of x.'''
     return 1 / (1 + exp(-x))
@@ -143,6 +144,10 @@ def mean_squared_error(y_true, y_pred):
 
 def accuracy_score(y_true, y_pred):
     return (y_true == y_pred).mean()
+
+
+def poisson_deviance(y_true, y_pred):
+    return 2 * (y_true * log1p(y_true / y_pred) - (y_true - y_pred)).sum()
 
 
 try:

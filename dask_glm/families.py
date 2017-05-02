@@ -1,10 +1,11 @@
 from __future__ import absolute_import, division, print_function
 
+import dask.array as da
+
 from dask_glm.utils import dot, exp, log1p, sigmoid
 
 
 class Logistic(object):
-
     @staticmethod
     def loglike(Xbeta, y):
         eXbeta = exp(Xbeta)
@@ -38,7 +39,7 @@ class Logistic(object):
 class Normal(object):
     @staticmethod
     def loglike(Xbeta, y):
-        return ((y - Xbeta)**2).sum()
+        return ((y - Xbeta) ** 2).sum()
 
     @staticmethod
     def pointwise_loss(beta, X, y):
@@ -59,3 +60,40 @@ class Normal(object):
     @staticmethod
     def hessian(Xbeta, X):
         return 2 * dot(X.T, X)
+
+
+class Poisson(object):
+    """
+    This implements Poisson regression for count data. 
+    See https://en.wikipedia.org/wiki/Poisson_regression.
+    """
+
+    @staticmethod
+    def loglike(Xbeta, y):
+        eXbeta = exp(Xbeta)
+        yXbeta = y*Xbeta
+        return (yXbeta - eXbeta).sum()
+
+    @staticmethod
+    def pointwise_loss(beta, X, y):
+        beta, y = beta.ravel(), y.ravel()
+        Xbeta = X.dot(beta)
+        return Poisson.loglike(Xbeta, y)
+
+    @staticmethod
+    def pointwise_gradient(beta, X, y):
+        beta, y = beta.ravel(), y.ravel()
+        Xbeta = X.dot(beta)
+        return Poisson.gradient(Xbeta, X, y)
+
+    @staticmethod
+    def gradient(Xbeta, X, y):
+        eXbeta = exp(Xbeta)
+        return dot(X.T, eXbeta - y)
+
+    @staticmethod
+    def hessian(Xbeta, X):
+        eXbeta = exp(Xbeta)
+        diag_eXbeta = da.diag(eXbeta)
+        x_diag_eXbeta = dot(diag_eXbeta, X)
+        return dot(X.T, x_diag_eXbeta)
