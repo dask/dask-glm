@@ -6,6 +6,7 @@ import sys
 import dask.array as da
 import numpy as np
 from multipledispatch import dispatch
+import toolz
 
 
 def sigmoid(x):
@@ -81,7 +82,7 @@ def log1p(A):
 @dispatch(object, object)
 def dot(A, B):
     x = max([A, B], key=lambda x: getattr(x, '__array_priority__', 0))
-    module = package_of(x)
+    module = package_of(type(x))
     return module.dot(A, B)
 
 
@@ -155,13 +156,14 @@ else:
         return np.exp(x.todense())
 
 
-def package_of(obj):
+@toolz.memoize
+def package_of(typ):
     """ Return package containing object's definition
 
     Or return None if not found
     """
     # http://stackoverflow.com/questions/43462701/get-package-of-python-object/43462865#43462865
-    mod = inspect.getmodule(obj)
+    mod = inspect.getmodule(typ)
     if not mod:
         return
     base, _sep, _stem = mod.__name__.partition('.')
