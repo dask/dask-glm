@@ -19,7 +19,8 @@ import functools
 import operator
 
 import dask
-from dask import delayed, persist, compute
+from dask import delayed, persist, compute, sharedict
+from dask.utils import ensure_dict
 import dask.array as da
 import numpy as np
 from scipy.optimize import fmin_l_bfgs_b
@@ -155,7 +156,6 @@ def newton(X, y, max_iter=50, tol=1e-8, family=Logistic):
 
 def admm(X, y, regularizer=L1, lamduh=0.1, rho=1, over_relax=1,
          max_iter=250, abstol=1e-4, reltol=1e-2, family=Logistic):
-
     pointwise_loss = family.pointwise_loss
     pointwise_gradient = family.pointwise_gradient
     regularizer = _regularizers.get(regularizer, regularizer)  # string
@@ -198,7 +198,6 @@ def admm(X, y, regularizer=L1, lamduh=0.1, rho=1, over_relax=1,
     betas = np.array([np.ones(p) for i in range(nchunks)])
 
     for k in range(max_iter):
-
         # x-update step
         new_betas = [delayed(local_update)(xx, yy, bb, z, uu, rho, f=f,
                                            fprime=fprime) for
@@ -231,24 +230,41 @@ def admm(X, y, regularizer=L1, lamduh=0.1, rho=1, over_relax=1,
 
 
 def local_update(X, y, beta, z, u, rho, f, fprime, solver=fmin_l_bfgs_b):
-    if len(X) > 1:
-        X = [da.from_array(x, chunks=x.shape, name=False,
-                           getitem=operator.getitem) for x in X]
-        X = da.concatenate(X, axis=1)
-    else:
-        X = X[0]
-
-    def f2(x, *args):
-        f_eval = f(x, *args)
-        fprime_eval = fprime(x, *args)
-        f_eval, fprime_eval = dask.compute(f_eval, fprime_eval)
-        return f_eval, fprime_eval
-
     beta = beta.ravel()
     u = u.ravel()
     z = z.ravel()
-    solver_args = (X, y, z, u, rho)
-    beta, f, d = solver(f2, beta, args=solver_args, maxiter=200, maxfun=250)
+
+    if len(X) > 1:
+        # Construct dask graph for computation
+        X = [da.from_array(x, chunks=x.shape, name=False,
+                           getitem=operator.getitem) for x in X]
+        X = da.concatenate(X, axis=1).persist(get=dask.get)
+        beta = da.from_array(beta, chunks=beta.shape, name=False,
+                             getitem=operator.getitem).persist(get=dask.get)
+        ff = f(beta, X, y, z, u, rho)
+        ffprime = fprime(beta, X, y, z, u, rho)
+        ff, ffprime = dask.delayed(ff), dask.delayed(ffprime)
+        dsk = ensure_dict(sharedict.merge(ff.dask, ffprime.dask))
+
+        beta_key = beta._keys()[0]
+        def f2(beta):
+            """ Reuse existing graph, just swap in new beta and compute """
+            dsk[beta_key] = beta
+            result, gradient = dask.get(dsk, [ff.key, ffprime.key])
+            print(result, gradient)
+            return result, gradient
+
+        solver_args = ()
+    else:
+        X = X[0]
+        solver_args = (X, y, z, u, rho)
+
+        def f2(beta, *args):
+            result, gradient = f(beta, *args), fprime(beta, *args)
+            print(result, gradient)
+            return result, gradient
+
+    beta, _, _ = solver(f2, beta, args=solver_args, maxiter=200, maxfun=250)
 
     return beta
 
