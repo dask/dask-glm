@@ -89,7 +89,7 @@ def test_basic_unreg_descent(func, kwargs, N, nchunks, family):
 @pytest.mark.parametrize('nchunks', [1, 10])
 @pytest.mark.parametrize('family', [Logistic, Normal])
 @pytest.mark.parametrize('lam', [0.01, 1.2, 4.05])
-@pytest.mark.parametrize('reg', [L1, L2])
+@pytest.mark.parametrize('reg', [L1(), L2()])
 def test_basic_reg_descent(func, kwargs, N, nchunks, family, lam, reg):
     beta = np.random.normal(size=2)
     M = len(beta)
