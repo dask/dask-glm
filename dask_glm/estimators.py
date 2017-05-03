@@ -120,7 +120,7 @@ class LogisticRegression(_GLM):
 
 class LinearRegression(_GLM):
     """
-    Ordinary Lest Square regression
+    Ordinary Least Squares regression
     """
 
     @property
