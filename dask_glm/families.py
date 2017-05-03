@@ -94,6 +94,5 @@ class Poisson(object):
     @staticmethod
     def hessian(Xbeta, X):
         eXbeta = exp(Xbeta)
-        diag_eXbeta = da.diag(eXbeta)
-        x_diag_eXbeta = dot(diag_eXbeta, X)
+        x_diag_eXbeta = eXbeta[:, None] *  X
         return dot(X.T, x_diag_eXbeta)
