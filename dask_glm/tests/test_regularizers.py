@@ -113,3 +113,47 @@ def test_l1_hessian_raises(beta):
 ])
 def test_l1_proximal_operator(beta, expected):
     npt.assert_array_equal(regs.L1().proximal_operator(beta, 1), expected)
+
+
+@pytest.mark.parametrize('beta,expected', [
+    (np.array([0, 0, 0]), 0),
+    (np.array([1, 2, 3]), 6.5)
+])
+def test_elastic_net_function(beta, expected):
+    assert regs.ElasticNet().f(beta) == expected
+
+
+def test_elastic_net_function_zero_weight_is_l2():
+    beta = np.array([1, 2, 3])
+    assert regs.ElasticNet(weight=0).f(beta) == regs.L2().f(beta)
+
+
+def test_elastic_net_function_zero_weight_is_l1():
+    beta = np.array([1, 2, 3])
+    assert regs.ElasticNet(weight=1).f(beta) == regs.L1().f(beta)
+
+
+def test_elastic_net_gradient():
+    beta = np.array([1, 2, 3])
+    npt.assert_array_equal(regs.ElasticNet(weight=0.5).gradient(beta), np.array([1, 1.5, 2]))
+
+
+def test_elastic_net_gradient_zero_weight_is_l2():
+    beta = np.array([1, 2, 3])
+    npt.assert_array_equal(regs.ElasticNet(weight=0).gradient(beta), regs.L2().gradient(beta))
+
+
+def test_elastic_net_gradient_zero_weight_is_l1():
+    beta = np.array([1, 2, 3])
+    npt.assert_array_equal(regs.ElasticNet(weight=1).gradient(beta), regs.L1().gradient(beta))
+
+
+def test_elastic_net_hessian():
+    beta = np.array([1, 2, 3])
+    npt.assert_array_equal(regs.ElasticNet(weight=0.5).hessian(beta),
+                           np.eye(len(beta)) * regs.ElasticNet().weight)
+
+
+def test_elastic_net_proximal_operator():
+    beta = np.array([1, 2, 3])
+    npt.assert_array_equal(regs.ElasticNet(weight=0.5).proximal_operator(beta, 1), beta)

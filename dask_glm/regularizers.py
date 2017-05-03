@@ -84,8 +84,8 @@ class L1(Regularizer):
 class ElasticNet(Regularizer):
     """Elastic net regularization."""
 
-    def __init__(self, weight=None):
-        self.weight = weight or 0.5
+    def __init__(self, weight=0.5):
+        self.weight = weight
         self.l1 = L1()
         self.l2 = L2()
 
@@ -99,16 +99,17 @@ class ElasticNet(Regularizer):
         return self._weighted(self.l1.gradient(beta), self.l2.gradient(beta))
 
     def hessian(self, beta):
-        return (1 - weight) * self.l2.hessian(beta)
+        return (1 - self.weight) * self.l2.hessian(beta)
 
     def proximal_operator(self, beta, t):
         """See notebooks/ElasticNetProximalOperatorDerivation.ipynb for derivation."""
         g = self.weight * t
+        @np.vectorize
         def func(b):
             if b <= g:
                 return 0
             return (b - g * np.sign(b)) / (t - g + 1)
-        return func(beta)
+        return beta
 
 
 _regularizers = {
