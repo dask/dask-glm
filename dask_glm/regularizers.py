@@ -102,10 +102,13 @@ class ElasticNet(Regularizer):
         return (1 - weight) * self.l2.hessian(beta)
 
     def proximal_operator(self, beta, t):
+        """See notebooks/ElasticNetProximalOperatorDerivation.ipynb for derivation."""
         g = self.weight * t
-        if beta <= g:
-            return 0
-        return (beta - g * np.sign(beta)) / (t - g + 1)
+        def func(b):
+            if b <= g:
+                return 0
+            return (b - g * np.sign(b)) / (t - g + 1)
+        return func(beta)
 
 
 _regularizers = {
