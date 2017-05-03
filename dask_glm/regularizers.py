@@ -9,6 +9,7 @@ class Regularizer(object):
     Defines the set of methods required to create a new regularization object. This includes
     the regularization functions itself and it's gradient, hessian, and proximal operator.
     """
+    _name = '_base'
 
     def f(self, beta):
         """Regularization function."""
@@ -44,9 +45,18 @@ class Regularizer(object):
             return hess(beta, *args) + lam * self.hessian(beta)
         return wrapped
 
+    @classmethod
+    def get(cls, obj):
+        if isinstance(obj, cls):
+            return obj
+        elif isinstance(obj, str):
+            return {o._name: o for o in cls.__subclasses__()}[obj]()
+        raise TypeError('Not a valid regularizer object.')
+
 
 class L2(Regularizer):
     """L2 regularization."""
+    _name = 'l2'
 
     def f(self, beta):
         return (beta**2).sum() / 2
@@ -63,6 +73,7 @@ class L2(Regularizer):
 
 class L1(Regularizer):
     """L1 regularization."""
+    _name = 'l1'
 
     def f(self, beta):
         return (np.abs(beta)).sum()
@@ -83,6 +94,7 @@ class L1(Regularizer):
 
 class ElasticNet(Regularizer):
     """Elastic net regularization."""
+    _name = 'elastic_net'
 
     def __init__(self, weight=0.5):
         self.weight = weight
@@ -111,10 +123,3 @@ class ElasticNet(Regularizer):
                 return 0
             return (b - g * np.sign(b)) / (t - g + 1)
         return beta
-
-
-_regularizers = {
-    'l1': L1(),
-    'l2': L2(),
-    'elastic_net': ElasticNet()
-}

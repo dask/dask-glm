@@ -24,7 +24,7 @@ from scipy.optimize import fmin_l_bfgs_b
 
 from dask_glm.utils import dot, exp, log1p
 from dask_glm.families import Logistic
-from dask_glm.regularizers import _regularizers
+from dask_glm.regularizers import Regularizer
 
 
 def compute_stepsize_dask(beta, step, Xbeta, Xstep, y, curr_val,
@@ -155,7 +155,7 @@ def admm(X, y, regularizer='l1', lamduh=0.1, rho=1, over_relax=1,
 
     pointwise_loss = family.pointwise_loss
     pointwise_gradient = family.pointwise_gradient
-    regularizer = _regularizers.get(regularizer, regularizer)  # string
+    regularizer = Regularizer.get(regularizer)
 
     def create_local_gradient(func):
         @functools.wraps(func)
@@ -331,7 +331,7 @@ def proximal_grad(X, y, regularizer='l1', lamduh=0.1, family=Logistic,
     recalcRate = 10
     backtrackMult = firstBacktrackMult
     beta = np.zeros(p)
-    regularizer = _regularizers.get(regularizer, regularizer)  # string
+    regularizer = Regularizer.get(regularizer)
 
     if verbose:
         print('#       -f        |df/f|    |dx/x|    step')
