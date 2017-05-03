@@ -24,7 +24,7 @@ from scipy.optimize import fmin_l_bfgs_b
 
 from dask_glm.utils import dot, exp, log1p
 from dask_glm.families import Logistic
-from dask_glm.regularizers import L1, _regularizers
+from dask_glm.regularizers import _regularizers
 
 
 def compute_stepsize_dask(beta, step, Xbeta, Xstep, y, curr_val,
@@ -150,7 +150,7 @@ def newton(X, y, max_iter=50, tol=1e-8, family=Logistic):
     return beta
 
 
-def admm(X, y, regularizer=L1(), lamduh=0.1, rho=1, over_relax=1,
+def admm(X, y, regularizer='l1', lamduh=0.1, rho=1, over_relax=1,
          max_iter=250, abstol=1e-4, reltol=1e-2, family=Logistic):
 
     pointwise_loss = family.pointwise_loss
@@ -319,7 +319,7 @@ def bfgs(X, y, max_iter=500, tol=1e-14, family=Logistic):
     return beta
 
 
-def proximal_grad(X, y, regularizer=L1(), lamduh=0.1, family=Logistic,
+def proximal_grad(X, y, regularizer='l1', lamduh=0.1, family=Logistic,
                   max_iter=100, tol=1e-8, verbose=False):
 
     n, p = X.shape

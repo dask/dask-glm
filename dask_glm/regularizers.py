@@ -104,6 +104,7 @@ class ElasticNet(Regularizer):
     def proximal_operator(self, beta, t):
         """See notebooks/ElasticNetProximalOperatorDerivation.ipynb for derivation."""
         g = self.weight * t
+
         @np.vectorize
         def func(b):
             if b <= g:
