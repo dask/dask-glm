@@ -49,16 +49,16 @@ class L2(Regularizer):
     """L2 regularization."""
 
     def f(self, beta):
-        return (beta**2).sum()
+        return (beta**2).sum() / 2
 
     def gradient(self, beta):
-        return 2 * beta
+        return beta
+
+    def hessian(self, beta):
+        return np.eye(len(beta))
 
     def proximal_operator(self, beta, t):
         return 1 / (1 + t) * beta
-
-    def hessian(self, beta):
-        return 2 * np.eye(len(beta))
 
 
 class L1(Regularizer):
@@ -84,8 +84,8 @@ class L1(Regularizer):
 class ElasticNet(Regularizer):
     """Elastic net regularization."""
 
-    def __init__(self, weight):
-        self.weight = weight
+    def __init__(self, weight=None):
+        self.weight = weight or 0.5
         self.l1 = L1()
         self.l2 = L2()
 
@@ -114,4 +114,5 @@ class ElasticNet(Regularizer):
 _regularizers = {
     'l1': L1(),
     'l2': L2(),
+    'elastic_net': ElasticNet()
 }
