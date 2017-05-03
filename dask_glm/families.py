@@ -1,7 +1,5 @@
 from __future__ import absolute_import, division, print_function
 
-import dask.array as da
-
 from dask_glm.utils import dot, exp, log1p, sigmoid
 
 
@@ -64,15 +62,15 @@ class Normal(object):
 
 class Poisson(object):
     """
-    This implements Poisson regression for count data. 
+    This implements Poisson regression for count data.
     See https://en.wikipedia.org/wiki/Poisson_regression.
     """
 
     @staticmethod
     def loglike(Xbeta, y):
         eXbeta = exp(Xbeta)
-        yXbeta = y*Xbeta
-        return (eXbeta - yXbeta ).sum()
+        yXbeta = y * Xbeta
+        return (eXbeta - yXbeta).sum()
 
     @staticmethod
     def pointwise_loss(beta, X, y):
@@ -94,5 +92,5 @@ class Poisson(object):
     @staticmethod
     def hessian(Xbeta, X):
         eXbeta = exp(Xbeta)
-        x_diag_eXbeta = eXbeta[:, None] *  X
+        x_diag_eXbeta = eXbeta[:, None] * X
         return dot(X.T, x_diag_eXbeta)

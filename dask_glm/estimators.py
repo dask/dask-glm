@@ -5,7 +5,9 @@ from sklearn.base import BaseEstimator
 
 from . import algorithms
 from . import families
-from .utils import (sigmoid, dot, add_intercept, mean_squared_error, accuracy_score, exp, poisson_deviance)
+from .utils import (
+    sigmoid, dot, add_intercept, mean_squared_error, accuracy_score, exp, poisson_deviance
+)
 
 
 class _GLM(BaseEstimator):
@@ -120,6 +122,7 @@ class LinearRegression(_GLM):
     """
     Ordinary Lest Square regression
     """
+
     @property
     def family(self):
         return families.Normal
@@ -130,6 +133,7 @@ class LinearRegression(_GLM):
 
     def score(self, X, y):
         return mean_squared_error(y, self.predict(X))
+
 
 class PoissonRegression(_GLM):
     """
