@@ -114,13 +114,14 @@ def test_l1_gradient_raises_near_zero(beta):
         regs.L1().gradient(beta)
 
 
-@pytest.mark.parametrize('beta', [
-    np.array([0, 0, 0]),
-    np.array([1, 2, 3])
-])
-def test_l1_hessian_raises(beta):
+def test_l1_hessian():
+    npt.assert_array_equal(regs.L1().hessian(np.array([1, 2])),
+                           np.array([[0, 0], [0, 0]]))
+
+
+def test_l1_hessian_raises():
     with pytest.raises(ValueError):
-        regs.L1().hessian(beta)
+        regs.L1().hessian(np.array([0, 0, 0]))
 
 
 @pytest.mark.parametrize('beta,expected', [
@@ -168,6 +169,11 @@ def test_elastic_net_hessian():
     beta = np.array([1, 2, 3])
     npt.assert_array_equal(regs.ElasticNet(weight=0.5).hessian(beta),
                            np.eye(len(beta)) * regs.ElasticNet().weight)
+
+
+def test_elastic_net_hessian_raises():
+    with pytest.raises(ValueError):
+        regs.ElasticNet(weight=0.5).hessian(np.array([0, 1, 2]))
 
 
 def test_elastic_net_proximal_operator():

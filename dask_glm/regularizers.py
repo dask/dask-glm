@@ -7,7 +7,7 @@ class Regularizer(object):
     """Abstract base class for regularization object.
 
     Defines the set of methods required to create a new regularization object. This includes
-    the regularization functions itself and it's gradient, hessian, and proximal operator.
+    the regularization functions itself and its gradient, hessian, and proximal operator.
     """
     name = '_base'
 
@@ -24,7 +24,7 @@ class Regularizer(object):
         raise NotImplementedError
 
     def proximal_operator(self, beta, t):
-        """Proximal operator function for non-differentiable regularization function."""
+        """Proximal operator for regularization function."""
         raise NotImplementedError
 
     def add_reg_f(self, f, lam):
@@ -85,7 +85,9 @@ class L1(Regularizer):
             return np.sign(beta)
 
     def hessian(self, beta):
-        raise ValueError('l1 norm is not twice differentiable!')
+        if np.any(np.isclose(beta, 0)):
+            raise ValueError('l1 norm is not twice differentiable at 0!')
+        return np.zeros((beta.shape[0], beta.shape[0]))
 
     def proximal_operator(self, beta, t):
         z = np.maximum(0, beta - t) - np.maximum(0, -beta - t)
@@ -111,7 +113,7 @@ class ElasticNet(Regularizer):
         return self._weighted(self.l1.gradient(beta), self.l2.gradient(beta))
 
     def hessian(self, beta):
-        return (1 - self.weight) * self.l2.hessian(beta)
+        return self._weighted(self.l1.hessian(beta), self.l2.hessian(beta))
 
     def proximal_operator(self, beta, t):
         """See notebooks/ElasticNetProximalOperatorDerivation.ipynb for derivation."""
