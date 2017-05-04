@@ -2,7 +2,6 @@ import pytest
 
 from dask_glm.estimators import LogisticRegression, LinearRegression, PoissonRegression
 from dask_glm.datasets import make_classification, make_regression, make_poisson
-from dask_glm.algorithms import _solvers
 from dask_glm.regularizers import Regularizer
 
 
