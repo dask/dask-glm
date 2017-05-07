@@ -243,11 +243,9 @@ def shrinkage(x, kappa):
     return z
 
 
-def lbfgs(X, y, regularizer='l1', alpha=1.0, max_iter=100, tol=1e-4,
+def lbfgs(X, y, regularizer='l2', alpha=1.0, max_iter=100, tol=1e-4,
           family=Logistic, verbose=False):
-    """L-BFGS solver using scipy.optimize implementation
-
-    Currently supports L2 regularization only"""
+    """L-BFGS solver using scipy.optimize implementation"""
 
     pointwise_loss = family.pointwise_loss
     pointwise_gradient = family.pointwise_gradient
