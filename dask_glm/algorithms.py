@@ -243,29 +243,30 @@ def shrinkage(x, kappa):
     return z
 
 
-def lbfgs(X, y, regularizer='l2', alpha=1.0, max_iter=100, tol=1e-4,
+def lbfgs(X, y, regularizer=None, alpha=1.0, max_iter=100, tol=1e-4,
           family=Logistic, verbose=False):
     """L-BFGS solver using scipy.optimize implementation"""
 
     pointwise_loss = family.pointwise_loss
     pointwise_gradient = family.pointwise_gradient
-    regularizer = Regularizer.get(regularizer)
+    if regularizer:
+        regularizer = Regularizer.get(regularizer)
+        pointwise_loss = regularizer.add_reg_f(pointwise_loss, alpha)
+        pointwise_gradient = regularizer.add_reg_grad(pointwise_gradient, alpha)
 
     n, p = X.shape
     beta0 = np.zeros(p)
 
-    def compute_loss_grad(beta, X, y, alpha):
-        loss_fn = regularizer.add_reg_f(pointwise_loss, alpha)(beta, X, y)
-        gradient_fn = regularizer.add_reg_grad(pointwise_gradient, alpha)(beta, X, y)
+    def compute_loss_grad(beta, X, y):
+        loss_fn = pointwise_loss(beta, X, y)
+        gradient_fn = pointwise_gradient(beta, X, y)
         loss, gradient = compute(loss_fn, gradient_fn)
         return loss, gradient.copy()
 
-    func = lambda x, *args: compute_loss_grad(x, *args)[0:2]
-
     with set_options(fuse_ave_width=0):  # optimizations slows this down
         beta, loss, info = fmin_l_bfgs_b(
-            func, beta0, fprime=None,
-            args=(X, y, alpha),
+            compute_loss_grad, beta0, fprime=None,
+            args=(X, y),
             iprint=(verbose > 0) - 1, pgtol=tol, maxiter=max_iter)
 
     return beta
