@@ -22,7 +22,7 @@ import dask.array as da
 from scipy.optimize import fmin_l_bfgs_b
 
 
-from dask_glm.utils import dot, exp, log1p
+from dask_glm.utils import dot
 from dask_glm.families import Logistic
 from dask_glm.regularizers import Regularizer
 
@@ -243,7 +243,7 @@ def shrinkage(x, kappa):
     return z
 
 
-def lbfgs(X, y, regularizer=None, alpha=1.0, max_iter=100, tol=1e-4,
+def lbfgs(X, y, regularizer=None, lamduh=1.0, max_iter=100, tol=1e-4,
           family=Logistic, verbose=False):
     """L-BFGS solver using scipy.optimize implementation"""
 
@@ -251,8 +251,8 @@ def lbfgs(X, y, regularizer=None, alpha=1.0, max_iter=100, tol=1e-4,
     pointwise_gradient = family.pointwise_gradient
     if regularizer:
         regularizer = Regularizer.get(regularizer)
-        pointwise_loss = regularizer.add_reg_f(pointwise_loss, alpha)
-        pointwise_gradient = regularizer.add_reg_grad(pointwise_gradient, alpha)
+        pointwise_loss = regularizer.add_reg_f(pointwise_loss, lamduh)
+        pointwise_gradient = regularizer.add_reg_grad(pointwise_gradient, lamduh)
 
     n, p = X.shape
     beta0 = np.zeros(p)
