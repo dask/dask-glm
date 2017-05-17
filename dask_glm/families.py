@@ -1,9 +1,9 @@
 from __future__ import absolute_import, division, print_function
 
-from dask_glm.utils import dot, exp, log1p, sigmoid
+from dask_glm.utils import dot, exp, log1p, sigmoid, RegistryClass
 
 
-class Family(object):
+class Family(RegistryClass):
     """Base class methods for distribution.
 
     This class represents the required methods to add a new distribution to work
@@ -38,10 +38,11 @@ class Logistic(Family):
 
     .. _Logistic regression: https://en.wikipedia.org/wiki/Logistic_regression
     """
+    name = 'logistic'
 
     def loglikelihood(self, Xbeta, y):
         """
-        Evaluate the logistic loglikelihoodliehood
+        Evaluate the logistic loglikelihoodlihood
 
         Parameters
         ----------
@@ -68,6 +69,7 @@ class Normal(Family):
 
     .. _Linear regression: https://en.wikipedia.org/wiki/Linear_regression
     """
+    name = 'normal'
 
     def loglikelihood(self, Xbeta, y):
         return ((y - Xbeta) ** 2).sum()
@@ -79,7 +81,7 @@ class Normal(Family):
         return 2 * dot(X.T, X)
 
 
-class Poisson(object):
+class Poisson(Family):
     """
     This implements `Poisson regression`_, useful for
     modelling count data.
@@ -87,6 +89,7 @@ class Poisson(object):
 
     .. _Poisson regression: https://en.wikipedia.org/wiki/Poisson_regression
     """
+    name = 'poisson'
 
     def loglikelihood(self, Xbeta, y):
         eXbeta = exp(Xbeta)

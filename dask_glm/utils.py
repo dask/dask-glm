@@ -194,3 +194,33 @@ def package_of(obj):
         return
     base, _sep, _stem = mod.__name__.partition('.')
     return sys.modules[base]
+
+
+class RegistryClass(object):
+    """Convenience class for methods on subclasses."""
+
+    @classmethod
+    def get(cls, obj):
+        """Get the concrete instance for the name ``obj``.
+
+        Parameters
+        ----------
+        obj : Regularizer or str
+            Valid instances of ``Regularizer`` are passed through.
+            Strings are looked up according to ``obj.name`` and a
+            new instance is created
+
+        Returns
+        -------
+        obj : Regularizer
+        """
+        if isinstance(obj, cls):
+            return obj
+        elif isinstance(obj, str):
+            return {o.name: o for o in cls.__subclasses__()}[obj]()
+        raise TypeError('Not a valid {} object.'.format(cls.__name__))
+
+    @classmethod
+    def _all_children(cls):
+        """"Return a list of instances of all subclasses."""
+        return [o() for o in cls.__subclasses__()]

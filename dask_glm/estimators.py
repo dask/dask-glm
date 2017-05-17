@@ -112,7 +112,7 @@ class LogisticRegression(_GLM):
 
     @property
     def family(self):
-        return families.Logistic
+        return families.Logistic()
 
     def predict(self, X):
         return self.predict_proba(X) > .5  # TODO: verify, multiclass broken
@@ -167,7 +167,7 @@ class LinearRegression(_GLM):
     """
     @property
     def family(self):
-        return families.Normal
+        return families.Normal()
 
     def predict(self, X):
         X_ = self._maybe_add_intercept(X)
@@ -219,7 +219,7 @@ class PoissonRegression(_GLM):
     """
     @property
     def family(self):
-        return families.Poisson
+        return families.Poisson()
 
     def predict(self, X):
         X_ = self._maybe_add_intercept(X)

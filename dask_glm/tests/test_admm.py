@@ -5,7 +5,7 @@ import dask.array as da
 import numpy as np
 
 from dask_glm.algorithms import admm, local_update
-from dask_glm.families import Logistic, Normal
+from dask_glm.families import Family, Logistic, Normal
 from dask_glm.regularizers import L1
 from dask_glm.utils import make_y
 
@@ -15,7 +15,7 @@ from dask_glm.utils import make_y
                          [np.array([-1.5, 3]),
                           np.array([35, 2, 0, -3.2]),
                           np.array([-1e-2, 1e-4, 1.0, 2e-3, -1.2])])
-@pytest.mark.parametrize('family', [Logistic, Normal])
+@pytest.mark.parametrize('family', [Logistic(), Normal()])
 def test_local_update(N, beta, family):
     M = beta.shape[0]
     X = np.random.random((N, M))
