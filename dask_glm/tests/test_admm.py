@@ -5,7 +5,7 @@ import dask.array as da
 import numpy as np
 
 from dask_glm.algorithms import admm, local_update
-from dask_glm.families import Family, Logistic, Normal
+from dask_glm.families import Logistic, Normal
 from dask_glm.regularizers import L1
 from dask_glm.utils import make_y
 
