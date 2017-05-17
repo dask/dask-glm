@@ -3,6 +3,29 @@ from __future__ import absolute_import, division, print_function
 from dask_glm.utils import dot, exp, log1p, sigmoid
 
 
+class Family(object):
+    """Base class methods for distribution.
+
+    This class represents the required methods to add a new distribution to work
+    with the algorithms.
+    """
+
+    def loglike(self, Xbeta, y):
+        raise NotImplementedError
+
+    def pointwise_loss(self, beta, X, y):
+        raise NotImplementedError
+
+    def pointwise_gradient(self, beta, X, y):
+        raise NotImplementedError
+
+    def gradient(self, Xbeta, x, y):
+        raise NotImplementedError
+
+    def hessian(self, Xbeta, x):
+        raise NotImplementedError
+
+
 class Logistic(object):
     """Implements methods for `Logistic regression`_,
     useful for classifying binary outcomes.
