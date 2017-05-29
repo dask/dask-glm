@@ -40,22 +40,6 @@ def test_add_reg_funcs(func):
     assert new_func(2) == 7
 
 
-def test_regularizer_get_passes_through_instance():
-    x = FooRegularizer()
-    assert regs.Regularizer.get(x) == x
-
-
-def test_regularizer_get_unnamed_raises():
-    with pytest.raises(KeyError):
-        regs.Regularizer.get('foo')
-
-
-def test_regularizer_gets_from_name():
-    class Foo(regs.Regularizer):
-        name = 'foo'
-    assert isinstance(regs.Regularizer.get('foo'), Foo)
-
-
 @pytest.mark.parametrize('beta,expected', [
     (np.array([0, 0, 0]), 0),
     (np.array([1, 2, 3]), 7)

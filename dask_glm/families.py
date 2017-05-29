@@ -42,7 +42,7 @@ class Logistic(Family):
 
     def loglikelihood(self, Xbeta, y):
         """
-        Evaluate the logistic loglikelihoodlihood
+        Evaluate the logistic loglikelihood
 
         Parameters
         ----------
