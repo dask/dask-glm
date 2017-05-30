@@ -11,6 +11,30 @@ from dask_glm.algorithms import (newton, lbfgs, proximal_grad,
 from dask_glm.families import Family
 from dask_glm.regularizers import Regularizer
 from dask_glm.utils import sigmoid, make_y
+from unittest.mock import patch
+
+
+def test_family_pointwise_loss():
+    beta = np.array([1, 2])
+    X = np.array([[1, 2], [3, 4]])
+    y = np.array([1, 2])
+    with patch('dask_glm.families.Family.loglikelihood') as loglike:
+        Family().pointwise_loss(beta, X, y)
+        Xbeta, new_y = loglike.call_args[0]
+        np.testing.utils.assert_array_equal(Xbeta, X.dot(beta))
+        np.testing.utils.assert_array_equal(new_y, y)
+
+
+def test_family_pointwise_loss():
+    beta = np.array([1, 2])
+    X = np.array([[1, 2], [3, 4]])
+    y = np.array([1, 2])
+    with patch('dask_glm.families.Family.gradient') as gradient:
+        Family().pointwise_gradient(beta, X, y)
+        Xbeta, new_x, new_y = gradient.call_args[0]
+        np.testing.utils.assert_array_equal(Xbeta, X.dot(beta))
+        np.testing.utils.assert_array_equal(new_x, X)
+        np.testing.utils.assert_array_equal(new_y, y)
 
 
 def add_l1(f, lam):
