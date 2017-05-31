@@ -99,5 +99,3 @@ def test_regularizer_get_unnamed_raises():
 
 def test_regularizer_gets_from_name(foo_class):
     assert isinstance(utils.RegistryClass.get('foo'), foo_class)
-
-
