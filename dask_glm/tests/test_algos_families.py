@@ -25,7 +25,7 @@ def test_family_pointwise_loss():
         np.testing.utils.assert_array_equal(new_y, y)
 
 
-def test_family_pointwise_loss():
+def test_family_pointwise_gradient():
     beta = np.array([1, 2])
     X = np.array([[1, 2], [3, 4]])
     y = np.array([1, 2])

@@ -83,7 +83,10 @@ def test_sparse():
 @pytest.fixture
 def foo_class():
     class FooClass(utils.RegistryClass):
-        name = 'foo'
+        pass
+
+    class BarClass(FooClass):
+        name = 'bar'
     return FooClass
 
 
@@ -92,12 +95,11 @@ def test_registryclass_get_passes_through_instance(foo_class):
     assert utils.RegistryClass.get(x) == x
 
 
-def test_regularizer_get_unnamed_raises():
+def test_regularizer_get_unnamed_raises(foo_class):
     with pytest.raises(KeyError):
-        utils.RegistryClass.get('bar')
+        foo_class().get('foobar')
 
 
 def test_regularizer_gets_from_name(foo_class):
-    assert isinstance(utils.RegistryClass.get('foo'), foo_class)
-
+    assert isinstance(foo_class().get('bar'), foo_class)
 
