@@ -11,7 +11,7 @@ from dask_glm.algorithms import (newton, lbfgs, proximal_grad,
 from dask_glm.families import Family
 from dask_glm.regularizers import Regularizer
 from dask_glm.utils import sigmoid, make_y
-from unittest.mock import patch
+from mock import patch
 
 
 def test_family_pointwise_loss():
