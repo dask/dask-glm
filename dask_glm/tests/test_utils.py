@@ -102,4 +102,3 @@ def test_regularizer_get_unnamed_raises(foo_class):
 
 def test_regularizer_gets_from_name(foo_class):
     assert isinstance(foo_class().get('bar'), foo_class)
-
