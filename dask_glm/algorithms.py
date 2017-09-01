@@ -65,7 +65,8 @@ def compute_stepsize_dask(beta, step, Xbeta, Xstep, y, curr_val,
 
 
 @normalize
-def gradient_descent(X, y, max_iter=100, tol=1e-14, family=Logistic, **kwargs):
+def gradient_descent(X, y, max_iter=100, tol=1e-14, family=Logistic,
+                     approx_grad=False, initial_batch_size=None, **kwargs):
     """
     Michael Grant's implementation of Gradient Descent.
 
@@ -80,6 +81,13 @@ def gradient_descent(X, y, max_iter=100, tol=1e-14, family=Logistic, **kwargs):
         Maximum allowed change from prior iteration required to
         declare convergence
     family : Family
+    approx_grad : bool
+        If True (default False), approximate the gradient with a subset of
+        examples in X and y. When the number of examples is very large this can
+        result in speed gains.
+    initial_batch_size : int
+        The initial batch size when approximating the gradient. Only used when
+        `approx_grad == True`. Defaults to `min(n // n_chunks, n // 100)`
 
     Returns
     -------
@@ -97,9 +105,23 @@ def gradient_descent(X, y, max_iter=100, tol=1e-14, family=Logistic, **kwargs):
     backtrackMult = firstBacktrackMult
     beta = np.zeros(p)
 
+    if approx_grad:
+        n_chunks = max(len(c) for c in X.chunks)
+        batch_size = (min(n // n_chunks, n // 100) + 1
+                      if initial_batch_size is None else initial_batch_size)
+        keep = {'X': X, 'y': y}
+
     for k in range(max_iter):
+        if approx_grad:
+            batch_size = min(1.1 * batch_size + 1, n)
+            i = np.random.permutation(n).astype(int)
+            batch = list(i[:int(batch_size)])
+            X, y = keep['X'][batch], keep['y'][batch]
+            Xbeta = X.dot(beta)
+            func = loglike(Xbeta, y)
+
         # how necessary is this recalculation?
-        if k % recalcRate == 0:
+        if not approx_grad and k % recalcRate == 0:
             Xbeta = X.dot(beta)
             func = loglike(Xbeta, y)
 
