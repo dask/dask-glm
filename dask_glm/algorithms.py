@@ -84,7 +84,7 @@ def gradient_descent(X, y, max_iter=100, tol=1e-14, family=Logistic,
     approx_grad : bool
         If True (default False), approximate the gradient with a subset of
         examples in X and y. When the number of examples is very large this can
-        result in speed gains.
+        result in speed gains, and is described in :cite:`friedlander2012hybrid`.
     initial_batch_size : int
         The initial batch size when approximating the gradient. Only used when
         `approx_grad == True`. Defaults to `min(n // n_chunks, n // 100)`
@@ -92,6 +92,18 @@ def gradient_descent(X, y, max_iter=100, tol=1e-14, family=Logistic,
     Returns
     -------
     beta : array-like, shape (n_features,)
+
+    References
+    ----------
+    @article{friedlander2012hybrid,
+        Author = {Friedlander, Michael P and Schmidt, Mark},
+        Journal = {SIAM Journal on Scientific Computing},
+        Number = {3},
+        Pages = {A1380--A1405},
+        Title = {Hybrid deterministic-stochastic methods for data fitting},
+        Volume = {34},
+        Year = {2012}}
+
     """
 
     loglike, gradient = family.loglike, family.gradient
@@ -107,16 +119,33 @@ def gradient_descent(X, y, max_iter=100, tol=1e-14, family=Logistic,
 
     if approx_grad:
         n_chunks = max(len(c) for c in X.chunks)
-        batch_size = (min(n // n_chunks, n // 100) + 1
+        batch_size = (min(n // n_chunks, n // 100) + 2
                       if initial_batch_size is None else initial_batch_size)
         keep = {'X': X, 'y': y}
 
     for k in range(max_iter):
+        print(k)
         if approx_grad:
-            batch_size = min(1.1 * batch_size + 1, n)
-            i = np.random.permutation(n).astype(int)
-            batch = list(i[:int(batch_size)])
-            X, y = keep['X'][batch], keep['y'][batch]
+            batch_size = int(min(1.1 * batch_size + 1, n))
+
+            if k % recalcRate == 0:
+                i = np.random.permutation(n)
+                X = keep['X'][i]
+                y = keep['y'][i]
+            i = np.random.choice(n)
+            batch = np.random.permutation(n).astype(int)[:batch_size]
+            ma = np.zeros(n, dtype=bool)
+            ma[batch] = True
+            ma2 = ma.repeat(p).reshape(n, p)
+
+            #  idx = da.arange(n, chunks=1, dtype=int)
+            #  batch = da.ma.masked_array(idx, mask=ma)
+            X_full = da.ma.masked_array(keep['X'], mask=ma2)
+            y_full = da.ma.masked_array(keep['y'], mask=ma)
+            X = da.ma.getdata(X_full)[ma]
+            y = da.ma.getdata(y_full)[ma]
+            #batch = list(i[:int(batch_size)])
+            #  X, y = keep['X'][batch], keep['y'][batch]
             Xbeta = X.dot(beta)
             func = loglike(Xbeta, y)
 
