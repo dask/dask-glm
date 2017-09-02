@@ -124,28 +124,16 @@ def gradient_descent(X, y, max_iter=100, tol=1e-14, family=Logistic,
         keep = {'X': X, 'y': y}
 
     for k in range(max_iter):
-        print(k)
         if approx_grad:
-            batch_size = int(min(1.1 * batch_size + 1, n))
-
             if k % recalcRate == 0:
                 i = np.random.permutation(n)
-                X = keep['X'][i]
-                y = keep['y'][i]
-            i = np.random.choice(n)
-            batch = np.random.permutation(n).astype(int)[:batch_size]
-            ma = np.zeros(n, dtype=bool)
-            ma[batch] = True
-            ma2 = ma.repeat(p).reshape(n, p)
+                keep['X'] = keep['X'][i]
+                keep['y'] = keep['y'][i]
+            batch_size = int(min(1.1 * batch_size + 1, n - 1))
+            i = np.random.choice(n - batch_size)
+            X = keep['X'][i:i + batch_size]
+            y = keep['y'][i:i + batch_size]
 
-            #  idx = da.arange(n, chunks=1, dtype=int)
-            #  batch = da.ma.masked_array(idx, mask=ma)
-            X_full = da.ma.masked_array(keep['X'], mask=ma2)
-            y_full = da.ma.masked_array(keep['y'], mask=ma)
-            X = da.ma.getdata(X_full)[ma]
-            y = da.ma.getdata(y_full)[ma]
-            #batch = list(i[:int(batch_size)])
-            #  X, y = keep['X'][batch], keep['y'][batch]
             Xbeta = X.dot(beta)
             func = loglike(Xbeta, y)
 
