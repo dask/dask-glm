@@ -64,9 +64,17 @@ def compute_stepsize_dask(beta, step, Xbeta, Xstep, y, curr_val,
     return stepSize, beta, Xbeta, func
 
 
+def _compute_batch(chunk, batch_size=1, seed=42):
+    n_block = chunk.shape[0]
+    rnd = np.random.RandomState(seed)
+    i = rnd.permutation(n_block)
+    return chunk[i[:batch_size]]
+
+
 @normalize
 def gradient_descent(X, y, max_iter=100, tol=1e-14, family=Logistic,
-                     approx_grad=False, initial_batch_size=None, **kwargs):
+                     approx_grad=False, initial_batch_size=None, armijoMult=1e-1,
+                     seed=42, **kwargs):
     """
     Michael Grant's implementation of Gradient Descent.
 
@@ -110,7 +118,7 @@ def gradient_descent(X, y, max_iter=100, tol=1e-14, family=Logistic,
     n, p = X.shape
     firstBacktrackMult = 0.1
     nextBacktrackMult = 0.5
-    armijoMult = 0.1
+    armijoMult = 1e-1
     stepGrowth = 1.25
     stepSize = 1.0
     recalcRate = 10
@@ -119,26 +127,21 @@ def gradient_descent(X, y, max_iter=100, tol=1e-14, family=Logistic,
 
     if approx_grad:
         n_chunks = max(len(c) for c in X.chunks)
-        batch_size = (min(n // n_chunks, n // 100) + 2
-                      if initial_batch_size is None else initial_batch_size)
+        batch_size = n_chunks + 1 \
+                     if initial_batch_size is None else initial_batch_size
         keep = {'X': X, 'y': y}
 
     for k in range(max_iter):
         if approx_grad:
-            if k % recalcRate == 0:
-                i = np.random.permutation(n)
-                keep['X'] = keep['X'][i]
-                keep['y'] = keep['y'][i]
-            batch_size = int(min(1.1 * batch_size + 1, n - 1))
-            i = np.random.choice(n - batch_size)
-            X = keep['X'][i:i + batch_size]
-            y = keep['y'][i:i + batch_size]
-
-            Xbeta = X.dot(beta)
-            func = loglike(Xbeta, y)
+            block_batch_size = batch_size // n_chunks
+            kwargs = {'batch_size': block_batch_size, 'seed': k + seed}
+            X = keep['X'].map_blocks(_compute_batch, **kwargs)
+            y = keep['y'].map_blocks(_compute_batch, **kwargs)
+            #  Xbeta = X.dot(beta)
+            #  func = loglike(Xbeta, y)
 
         # how necessary is this recalculation?
-        if not approx_grad and k % recalcRate == 0:
+        if k % recalcRate == 0:
             Xbeta = X.dot(beta)
             func = loglike(Xbeta, y)
 
