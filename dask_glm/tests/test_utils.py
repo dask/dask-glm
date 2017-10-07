@@ -78,3 +78,27 @@ def test_sparse():
     assert utils.sum(x) == utils.sum(x.todense())
     for func in [utils.sigmoid, utils.sum, utils.exp]:
         assert_eq(func(x), func(y))
+
+
+@pytest.fixture
+def foo_class():
+    class FooClass(utils.RegistryClass):
+        pass
+
+    class BarClass(FooClass):
+        name = 'bar'
+    return FooClass
+
+
+def test_registryclass_get_passes_through_instance(foo_class):
+    x = foo_class()
+    assert utils.RegistryClass.get(x) == x
+
+
+def test_regularizer_get_unnamed_raises(foo_class):
+    with pytest.raises(KeyError):
+        foo_class().get('foobar')
+
+
+def test_regularizer_gets_from_name(foo_class):
+    assert isinstance(foo_class().get('bar'), foo_class)

@@ -11,12 +11,12 @@ from scipy.optimize import fmin_l_bfgs_b
 
 
 from dask_glm.utils import dot, normalize
-from dask_glm.families import Logistic
+from dask_glm.families import Family
 from dask_glm.regularizers import Regularizer
 
 
 def compute_stepsize_dask(beta, step, Xbeta, Xstep, y, curr_val,
-                          family=Logistic, stepSize=1.0,
+                          family='logistic', stepSize=1.0,
                           armijoMult=0.1, backtrackMult=0.1):
     """Compute the optimal stepsize
 
@@ -38,8 +38,8 @@ def compute_stepsize_dask(beta, step, Xbeta, Xstep, y, curr_val,
     xBeta : array-like
     func : callable
     """
-
-    loglike = family.loglike
+    family = Family.get(family)
+    loglike = family.loglikelihood
     beta, step, Xbeta, Xstep, y, curr_val = persist(beta, step, Xbeta, Xstep, y, curr_val)
     obeta, oXbeta = beta, Xbeta
     (step,) = compute(step)
@@ -65,7 +65,7 @@ def compute_stepsize_dask(beta, step, Xbeta, Xstep, y, curr_val,
 
 
 @normalize
-def gradient_descent(X, y, max_iter=100, tol=1e-14, family=Logistic, **kwargs):
+def gradient_descent(X, y, max_iter=100, tol=1e-14, family='logistic', **kwargs):
     """
     Michael Grant's implementation of Gradient Descent.
 
@@ -85,8 +85,8 @@ def gradient_descent(X, y, max_iter=100, tol=1e-14, family=Logistic, **kwargs):
     -------
     beta : array-like, shape (n_features,)
     """
-
-    loglike, gradient = family.loglike, family.gradient
+    family = Family.get(family)
+    loglike, gradient = family.loglikelihood, family.gradient
     n, p = X.shape
     firstBacktrackMult = 0.1
     nextBacktrackMult = 0.5
@@ -138,7 +138,7 @@ def gradient_descent(X, y, max_iter=100, tol=1e-14, family=Logistic, **kwargs):
 
 
 @normalize
-def newton(X, y, max_iter=50, tol=1e-8, family=Logistic, **kwargs):
+def newton(X, y, max_iter=50, tol=1e-8, family='logistic', **kwargs):
     """Newtons Method for Logistic Regression.
 
     Parameters
@@ -157,6 +157,7 @@ def newton(X, y, max_iter=50, tol=1e-8, family=Logistic, **kwargs):
     -------
     beta : array-like, shape (n_features,)
     """
+    family = Family.get(family)
     gradient, hessian = family.gradient, family.hessian
     n, p = X.shape
     beta = np.zeros(p)  # always init to zeros?
@@ -194,7 +195,7 @@ def newton(X, y, max_iter=50, tol=1e-8, family=Logistic, **kwargs):
 
 @normalize
 def admm(X, y, regularizer='l1', lamduh=0.1, rho=1, over_relax=1,
-         max_iter=250, abstol=1e-4, reltol=1e-2, family=Logistic, **kwargs):
+         max_iter=250, abstol=1e-4, reltol=1e-2, family='logistic', **kwargs):
     """
     Alternating Direction Method of Multipliers
 
@@ -216,7 +217,7 @@ def admm(X, y, regularizer='l1', lamduh=0.1, rho=1, over_relax=1,
     -------
     beta : array-like, shape (n_features,)
     """
-
+    family = Family.get(family)
     pointwise_loss = family.pointwise_loss
     pointwise_gradient = family.pointwise_gradient
     regularizer = Regularizer.get(regularizer)
@@ -303,7 +304,7 @@ def local_update(X, y, beta, z, u, rho, f, fprime, solver=fmin_l_bfgs_b):
 
 @normalize
 def lbfgs(X, y, regularizer=None, lamduh=1.0, max_iter=100, tol=1e-4,
-          family=Logistic, verbose=False, **kwargs):
+          family='logistic', verbose=False, **kwargs):
     """L-BFGS solver using scipy.optimize implementation
 
     Parameters
@@ -322,7 +323,7 @@ def lbfgs(X, y, regularizer=None, lamduh=1.0, max_iter=100, tol=1e-4,
     -------
     beta : array-like, shape (n_features,)
     """
-
+    family = Family.get(family)
     pointwise_loss = family.pointwise_loss
     pointwise_gradient = family.pointwise_gradient
     if regularizer is not None:
@@ -349,7 +350,7 @@ def lbfgs(X, y, regularizer=None, lamduh=1.0, max_iter=100, tol=1e-4,
 
 
 @normalize
-def proximal_grad(X, y, regularizer='l1', lamduh=0.1, family=Logistic,
+def proximal_grad(X, y, regularizer='l1', lamduh=0.1, family='logistic',
                   max_iter=100, tol=1e-8, **kwargs):
     """
 
@@ -371,7 +372,7 @@ def proximal_grad(X, y, regularizer='l1', lamduh=0.1, family=Logistic,
     -------
     beta : array-like, shape (n_features,)
     """
-
+    family = Family.get(family)
     n, p = X.shape
     firstBacktrackMult = 0.1
     nextBacktrackMult = 0.5
@@ -387,7 +388,7 @@ def proximal_grad(X, y, regularizer='l1', lamduh=0.1, family=Logistic,
         # Compute the gradient
         if k % recalcRate == 0:
             Xbeta = X.dot(beta)
-            func = family.loglike(Xbeta, y)
+            func = family.loglikelihood(Xbeta, y)
 
         gradient = family.gradient(Xbeta, X, y)
 
@@ -405,7 +406,7 @@ def proximal_grad(X, y, regularizer='l1', lamduh=0.1, family=Logistic,
 
             Xbeta, beta = persist(Xbeta, beta)
 
-            func = family.loglike(Xbeta, y)
+            func = family.loglikelihood(Xbeta, y)
             func = persist(func)[0]
             func = compute(func)[0]
             df = lf - func

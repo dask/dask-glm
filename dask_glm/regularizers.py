@@ -1,9 +1,10 @@
 from __future__ import absolute_import, division, print_function
 
 import numpy as np
+from dask_glm.utils import RegistryClass
 
 
-class Regularizer(object):
+class Regularizer(RegistryClass):
     """Abstract base class for regularization object.
 
     Defines the set of methods required to create a new regularization object. This includes
@@ -120,27 +121,6 @@ class Regularizer(object):
         def wrapped(beta, *args):
             return hess(beta, *args) + lam * self.hessian(beta)
         return wrapped
-
-    @classmethod
-    def get(cls, obj):
-        """Get the concrete instance for the name ``obj``.
-
-        Parameters
-        ----------
-        obj : Regularizer or str
-            Valid instances of ``Regularizer`` are passed through.
-            Strings are looked up according to ``obj.name`` and a
-            new instance is created
-
-        Returns
-        -------
-        obj : Regularizer
-        """
-        if isinstance(obj, cls):
-            return obj
-        elif isinstance(obj, str):
-            return {o.name: o for o in cls.__subclasses__()}[obj]()
-        raise TypeError('Not a valid regularizer object.')
 
 
 class L2(Regularizer):
