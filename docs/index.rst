@@ -9,13 +9,13 @@ Dask-glm
 *Dask-glm is a library for fitting Generalized Linear Models on large datasets*
 
 Dask-glm builds on the `dask`_ project to fit `GLM`_'s on datasets in parallel.
-It offers a `scikit-learn`_ compatible API for specifying your model.
+It provides the optimizers and regularizers used by libraries like `dask-ml`_,
+which builds scikit-learn-style APIs on top of those components.
 
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
 
-   estimators
    examples
    api
 
@@ -30,3 +30,4 @@ Indices and tables
 .. _dask: http://dask.pydata.org/en/latest/
 .. _GLM: https://en.wikipedia.org/wiki/Generalized_linear_model
 .. _scikit-learn: http://scikit-learn.org/
+.. _dask-ml: http://dask-ml.readthedocs.org/
