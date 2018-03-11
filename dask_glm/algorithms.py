@@ -6,7 +6,9 @@ from __future__ import absolute_import, division, print_function
 from dask import delayed, persist, compute, set_options
 import functools
 import numpy as np
+import numpy.linalg as LA
 import dask.array as da
+import dask.dataframe as dd
 from scipy.optimize import fmin_l_bfgs_b
 
 
@@ -134,6 +136,67 @@ def gradient_descent(X, y, max_iter=100, tol=1e-14, family=Logistic, **kwargs):
             break
         stepSize *= stepGrowth
         backtrackMult = nextBacktrackMult
+
+    return beta
+
+
+def _choose_step_sgd(initial, k):
+    return initial / (k + 1)
+
+
+@normalize
+def sgd(X, y, max_iter=1e3, tol=1e-2, family=Logistic, batch_size=64,
+        initial_step=1.0, **kwargs):
+    """Stochastic Gradient Descent.
+
+    Parameters
+    ----------
+    X : array-like, shape (n_samples, n_features)
+    y : array-like, shape (n_samples,)
+    max_iter : int, float
+        maximum number of iterations to attempt before declaring
+        failure to converge
+    tol : float
+        Maximum allowed change from prior iteration required to
+        declare convergence
+    batch_size : int
+        The batch size used to approximate the gradient. Larger batch sizes
+        will approximate the gradient better.
+    initial_step : float
+        Initial step size used in the optimization. The step size decays like
+        initial_step/(1 + iter_count).
+    family : Family
+
+    Returns
+    -------
+    beta : array-like, shape (n_features,)
+    """
+    gradient = family.gradient
+    n, p = X.shape
+    if np.isnan(n):
+        raise ValueError('SGD needs shape information to allow indexing. '
+                         'Possible by passing a computed array in (`X.compute()` '
+                         'or `X.values.compute()`), then doing using '
+                         '`dask.array.from_array ')
+
+    beta = np.zeros(p)
+
+    iter_count = 0
+    converged = False
+
+    while not converged:
+        beta_old = beta.copy()
+        iter_count += 1
+
+        i = np.random.choice(n, size=(batch_size,))
+        Xbeta = dot(X[i], beta)
+
+        grad = gradient(Xbeta, X[i], y[i]).compute()
+
+        beta -= _choose_step_sgd(initial_step, iter_count) * grad / batch_size
+
+        rel_error = LA.norm(beta_old - beta) / LA.norm(beta)
+        converged = (rel_error < tol) or (iter_count > max_iter)
 
     return beta
 
@@ -430,5 +493,6 @@ _solvers = {
     'gradient_descent': gradient_descent,
     'newton': newton,
     'lbfgs': lbfgs,
-    'proximal_grad': proximal_grad
+    'proximal_grad': proximal_grad,
+    'sgd': sgd
 }
