@@ -140,22 +140,17 @@ def gradient_descent(X, y, max_iter=100, tol=1e-14, family=Logistic, **kwargs):
     return beta
 
 
-def _choose_step_sgd(initial, k):
-    return initial / (k + 1)
-
-
 @normalize
-def sgd(X, y, max_iter=1e3, tol=1e-2, family=Logistic, batch_size=64,
-        initial_step=1.0, **kwargs):
+def sgd(X, y, epochs=100, tol=1e-3, family=Logistic, batch_size=64,
+        initial_step=1e-4, callback=None, average=True):
     """Stochastic Gradient Descent.
 
     Parameters
     ----------
     X : array-like, shape (n_samples, n_features)
     y : array-like, shape (n_samples,)
-    max_iter : int, float
-        maximum number of iterations to attempt before declaring
-        failure to converge
+    epochs : int, float
+        maximum number of passes through the dataset
     tol : float
         Maximum allowed change from prior iteration required to
         declare convergence
@@ -163,13 +158,19 @@ def sgd(X, y, max_iter=1e3, tol=1e-2, family=Logistic, batch_size=64,
         The batch size used to approximate the gradient. Larger batch sizes
         will approximate the gradient better.
     initial_step : float
-        Initial step size used in the optimization. The step size decays like
-        initial_step/(1 + iter_count).
+        The initial step size. The step size is decays like 1/k.
+    callback : callable
+        A callback to call every iteration that accepts keyword arguments
+        `X`, `y`, `beta`, `grad`, `nit` (number of iterations) and `family`
+    average : bool
+        To average the parameters found or not. See [1]_.
     family : Family
 
     Returns
     -------
     beta : array-like, shape (n_features,)
+
+    .. _1: https://en.wikipedia.org/wiki/Stochastic_gradient_descent#Averaging
     """
     gradient = family.gradient
     n, p = X.shape
@@ -180,24 +181,39 @@ def sgd(X, y, max_iter=1e3, tol=1e-2, family=Logistic, batch_size=64,
                          '`dask.array.from_array ')
 
     beta = np.zeros(p)
+    if average:
+        beta_sum = np.zeros(p)
 
-    iter_count = 0
-    converged = False
+    nit = 0
+    for epoch in range(epochs):
+        j = np.random.permutation(n)
+        X = X[j]
+        y = y[j]
+        for k in range(n // batch_size):
+            beta_old = beta.copy()
+            nit += 1
 
-    while not converged:
-        beta_old = beta.copy()
-        iter_count += 1
+            i = slice(batch_size * k, batch_size * (k + 1))
+            Xbeta = dot(X[i], beta)
+            grad = gradient(Xbeta, X[i], y[i]).compute()
 
-        i = np.random.choice(n, size=(batch_size,))
-        Xbeta = dot(X[i], beta)
+            # step_size = O(1/sqrt(k)) from "Non-asymptotic analysis of
+            # stochastic approximation algorithms for machine learning" by
+            # Moulines, Eric and Bach, Francis Rsgd
+            step_size = initial_step / np.sqrt(nit + 1)
+            beta -= step_size * (n / batch_size) * grad
+            if average:
+                beta_sum += beta
+            if callback:
+                callback(X=X[i], y=y[i], grad=grad, nit=nit, family=family,
+                         beta=beta if not average else beta_sum / nit)
 
-        grad = gradient(Xbeta, X[i], y[i]).compute()
-
-        beta -= _choose_step_sgd(initial_step, iter_count) * grad / batch_size
-
-        rel_error = LA.norm(beta_old - beta) / LA.norm(beta)
-        converged = (rel_error < tol) or (iter_count > max_iter)
-
+            rel_error = LA.norm(beta_old - beta) / LA.norm(beta)
+            converged = (rel_error < tol) or (nit / n > epochs)
+            if converged:
+                break
+    if average:
+        return beta_sum / nit
     return beta
 
 
