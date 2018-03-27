@@ -225,7 +225,8 @@ def sgd(X, y, epochs=100, tol=1e-3, family=Logistic, batch_size=64,
             beta_old = beta.copy()
             nit += 1
 
-            i = slice(batch_size * k, batch_size * (k + 1))
+            start = np.random.choice(n - batch_size)
+            i = slice(start, start + batch_size)
             Xbeta = dot(X[i], beta)
             grad = gradient(Xbeta, X[i], y[i]).compute()
 
