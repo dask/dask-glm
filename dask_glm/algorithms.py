@@ -355,6 +355,7 @@ def lbfgs(X, y, regularizer=None, lamduh=1.0, max_iter=100, tol=1e-4,
 def proximal_grad(X, y, regularizer='l1', lamduh=0.1, family=Logistic,
                   max_iter=100, tol=1e-8, **kwargs):
     """
+    Proximal Gradient Method
 
     Parameters
     ----------
