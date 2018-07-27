@@ -2,16 +2,14 @@
 """
 
 from __future__ import absolute_import, division, print_function
-import time
-from warnings import warn
 
 from dask import delayed, persist, compute, set_options
 import functools
 import numpy as np
 import numpy.linalg as LA
 import dask.array as da
-import dask.dataframe as dd
 from scipy.optimize import fmin_l_bfgs_b
+import sklearn.utils.random
 
 
 from dask_glm.utils import dot, normalize
@@ -153,16 +151,27 @@ def _get_n(n, kwargs):
     return n
 
 
-def _shuffle_blocks(x, seed=42):
-    rng = np.random.RandomState(seed)
+def _shuffle_blocks(x, random_state=None):
+    rng = sklearn.utils.random.check_random_state(random_state)
     i = rng.permutation(x.shape[0]).astype(int)
     y = x[i]
     return y
 
 
+def _index_full_to_chunk(index, chunks):
+    index.sort()
+    boundaries = np.cumsum(chunks)
+    out = []
+    for lower, upper in zip(boundaries, boundaries[1:]):
+        i = (lower <= index) & (index < upper)
+        out += [index[i]]
+    return out
+
+
 @normalize
-def sgd(X, y, epochs=100, tol=1e-3, family=Logistic, batch_size=64,
-        initial_step=1e-4, callback=None, average=True, maxiter=np.inf, **kwargs):
+def sgd(X, y, epochs=100, tol=1e-3, family=Logistic, batch_size=1000,
+        initial_step=1e-4, callback=None, average=True, maxiter=np.inf,
+        **kwargs):
     r"""Stochastic Gradient Descent.
 
     Parameters
@@ -189,26 +198,17 @@ def sgd(X, y, epochs=100, tol=1e-3, family=Logistic, batch_size=64,
     Returns
     -------
     beta : array-like, shape (n_features,)
-
-    Notes
-    -----
-
-    The current implementation assumes that the dataset is "well shuffled", or
-    each block is a representative example of the gradient. More formally, we
-    assume the gradient approximation is an unbiased approximation regardless
-    of which block is sampled.
-
-    .. _1: https://en.wikipedia.org/wiki/Stochastic_gradient_descent#Averaging
     """
+    #  import ipdb; ipdb.set_trace()
     gradient = family.gradient
     n, p = X.shape
     n = _get_n(n, kwargs)
 
     beta = np.zeros(p)
-    if average:
-        beta_sum = np.zeros(p)
-
-    nit = 0
+    beta_sum = np.zeros_like(beta)
+    beta = da.from_array(beta, chunks=p)
+    beta_sum = da.from_array(beta_sum, chunks=p)
+    iters = 0
 
     # step_size = O(1/sqrt(k)) from "Non-asymptotic analysis of
     # stochastic approximation algorithms for machine learning" by
@@ -217,33 +217,40 @@ def sgd(X, y, epochs=100, tol=1e-3, family=Logistic, batch_size=64,
     # step_size = lambda init, nit, decay: init * decay**(nit//n)
     # is used in practice but not testing now
     step_size = lambda init, nit: init / np.sqrt(nit + 1)
-    while True:
-        seed = int(time.time() * 1000) % 2**32  # millisecond timings
-        X = X.map_blocks(_shuffle_blocks, seed=seed, dtype=X.dtype)
-        y = y.map_blocks(_shuffle_blocks, seed=seed, dtype=y.dtype)
+    rng = np.random.RandomState(42)
+    finished = False
+    while not finished:
         for k in range(n // batch_size):
             beta_old = beta.copy()
-            nit += 1
+            iters += 1
 
-            start = np.random.choice(n - batch_size)
-            i = slice(start, start + batch_size)
-            Xbeta = dot(X[i], beta)
-            grad = gradient(Xbeta, X[i], y[i]).compute()
+            i = rng.choice(n, size=batch_size).astype(int)
+            i.sort()
+            i = da.from_array(i, chunks=len(i))
+            X_batch = X[i]
+            y_batch = y[i]
 
-            beta -= step_size(initial_step, nit) * (n / batch_size) * grad
+            Xbeta = dot(X_batch, beta)
+            grad = gradient(Xbeta, X_batch, y_batch)
+            beta -= step_size(initial_step, iters) * (n / batch_size) * grad
             if average:
                 beta_sum += beta
-            if callback:
-                callback(X=X[i], y=y[i], grad=grad, nit=nit, family=family,
-                         beta=beta if not average else beta_sum / nit)
 
-            rel_error = LA.norm(beta_old - beta) / LA.norm(beta)
-            converged = (rel_error < tol) or (nit / n > epochs) or (nit > maxiter)
-            if converged:
+            too_long = (iters / n > epochs) or (iters > maxiter)
+            if too_long:
+                finished = True
                 break
+            if iters % 1000 == 0:
+                rel_error = da.linalg.norm(beta_old - beta)
+                rel_error /= da.linalg.norm(beta)
+                converged = rel_error < tol
+                if converged.compute():
+                    finished = True
+                    break
+        finished = True
     if average:
-        return beta_sum / nit
-    return beta
+        return beta_sum.compute() / iters
+    return beta.compute()
 
 
 @normalize
