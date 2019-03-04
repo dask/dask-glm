@@ -1,12 +1,13 @@
 """
 Models following scikit-learn's estimator API.
 """
+import numpy as np
 from sklearn.base import BaseEstimator
 
 from . import algorithms
 from . import families
 from .utils import (
-    sigmoid, dot, add_intercept, mean_squared_error, accuracy_score, exp,
+    sigmoid, dot, add_intercept, mean_squared_error, accuracy_score,
     poisson_deviance
 )
 
@@ -227,7 +228,7 @@ class PoissonRegression(_GLM):
 
     def predict(self, X):
         X_ = self._maybe_add_intercept(X)
-        return exp(dot(X_, self._coef))
+        return np.exp(dot(X_, self._coef))
 
     def get_deviance(self, X, y):
         return poisson_deviance(y, self.predict(X))

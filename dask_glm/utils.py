@@ -34,72 +34,7 @@ def normalize(algo):
 
 def sigmoid(x):
     """Sigmoid function of x."""
-    return 1 / (1 + exp(-x))
-
-
-@dispatch(object)
-def exp(A):
-    return np.exp(A)
-
-
-@dispatch(float)
-def exp(A):
-    return np.exp(A)
-
-
-@dispatch(np.ndarray)
-def exp(A):
-    return np.exp(A)
-
-
-@dispatch(da.Array)
-def exp(A):
-    return da.exp(A)
-
-
-@dispatch(object)
-def absolute(A):
-    return abs(A)
-
-
-@dispatch(np.ndarray)
-def absolute(A):
-    return np.absolute(A)
-
-
-@dispatch(da.Array)
-def absolute(A):
-    return da.absolute(A)
-
-
-@dispatch(object)
-def sign(A):
-    return np.sign(A)
-
-
-@dispatch(np.ndarray)
-def sign(A):
-    return np.sign(A)
-
-
-@dispatch(da.Array)
-def sign(A):
-    return da.sign(A)
-
-
-@dispatch(object)
-def log1p(A):
-    return np.log1p(A)
-
-
-@dispatch(np.ndarray)
-def log1p(A):
-    return np.log1p(A)
-
-
-@dispatch(da.Array)
-def log1p(A):
-    return da.log1p(A)
+    return 1 / (1 + np.exp(-x))
 
 
 @dispatch(object, object)
@@ -168,7 +103,7 @@ def accuracy_score(y_true, y_pred):
 
 
 def poisson_deviance(y_true, y_pred):
-    return 2 * (y_true * log1p(y_true / y_pred) - (y_true - y_pred)).sum()
+    return 2 * (y_true * np.log1p(y_true / y_pred) - (y_true - y_pred)).sum()
 
 
 try:

@@ -75,6 +75,6 @@ def test_sparse():
     from sparse.utils import assert_eq
     x = sparse.COO({(0, 0): 1, (1, 2): 2, (2, 1): 3})
     y = x.todense()
-    assert utils.sum(x) == utils.sum(x.todense())
-    for func in [utils.sigmoid, utils.sum, utils.exp]:
+    assert np.sum(x) == np.sum(x.todense())
+    for func in [utils.sigmoid, np.sum, np.exp]:
         assert_eq(func(x), func(y))
