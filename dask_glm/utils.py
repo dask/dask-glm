@@ -136,11 +136,7 @@ def sum(A):
     return A.sum()
 
 
-@dispatch(np.ndarray)
-def add_intercept(X):
-    return np.concatenate([X, np.ones((X.shape[0], 1))], axis=1)
-
-@dispatch(cupy.ndarray)
+@dispatch(object)
 def add_intercept(X):
     return np.concatenate([X, np.ones_like(X, shape=(X.shape[0], 1))], axis=1)
 
