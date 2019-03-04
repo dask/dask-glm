@@ -5,6 +5,7 @@ import sys
 
 import dask.array as da
 import numpy as np
+import cupy
 from functools import wraps
 from multipledispatch import dispatch
 
@@ -21,7 +22,7 @@ def normalize(algo):
                 raise ValueError('Multiple constant columns detected!')
             mean[intercept_idx] = 0
             std[intercept_idx] = 1
-            mean = mean if len(intercept_idx[0]) else np.zeros(mean.shape)
+            mean = mean if len(intercept_idx[0]) else np.zeros_like(mean)
             Xn = (X - mean) / std
             out = algo(Xn, y, *args, **kwargs).copy()
             i_adj = np.sum(out * mean / std)
@@ -39,7 +40,7 @@ def sigmoid(x):
 
 @dispatch(object)
 def exp(A):
-    return A.exp()
+    return np.exp(A)
 
 
 @dispatch(float)
@@ -74,7 +75,7 @@ def absolute(A):
 
 @dispatch(object)
 def sign(A):
-    return A.sign()
+    return np.sign(A)
 
 
 @dispatch(np.ndarray)
@@ -89,7 +90,7 @@ def sign(A):
 
 @dispatch(object)
 def log1p(A):
-    return A.log1p()
+    return np.log1p(A)
 
 
 @dispatch(np.ndarray)
@@ -105,8 +106,7 @@ def log1p(A):
 @dispatch(object, object)
 def dot(A, B):
     x = max([A, B], key=lambda x: getattr(x, '__array_priority__', 0))
-    module = package_of(x)
-    return module.dot(A, B)
+    return np.dot(A, B)
 
 
 @dispatch(da.Array, np.ndarray)
@@ -139,6 +139,10 @@ def sum(A):
 @dispatch(np.ndarray)
 def add_intercept(X):
     return np.concatenate([X, np.ones((X.shape[0], 1))], axis=1)
+
+@dispatch(cupy.ndarray)
+def add_intercept(X):
+    return np.concatenate([X, np.ones_like(X, shape=(X.shape[0], 1))], axis=1)
 
 
 @dispatch(da.Array)

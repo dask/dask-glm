@@ -11,6 +11,7 @@ import dask.array as da
 from scipy.optimize import fmin_l_bfgs_b
 
 
+from dask.array.utils import normalize_to_array
 from dask_glm.utils import dot, normalize
 from dask_glm.families import Logistic
 from dask_glm.regularizers import Regularizer
@@ -97,7 +98,7 @@ def gradient_descent(X, y, max_iter=100, tol=1e-14, family=Logistic, **kwargs):
     stepSize = 1.0
     recalcRate = 10
     backtrackMult = firstBacktrackMult
-    beta = np.zeros(p)
+    beta = np.zeros_like(X, shape=(p,))
 
     for k in range(max_iter):
         # how necessary is this recalculation?
@@ -161,7 +162,7 @@ def newton(X, y, max_iter=50, tol=1e-8, family=Logistic, **kwargs):
     """
     gradient, hessian = family.gradient, family.hessian
     n, p = X.shape
-    beta = np.zeros(p)  # always init to zeros?
+    beta = np.zeros_like(X, shape=(p,))  # always init to zeros?
     Xbeta = dot(X, beta)
 
     iter_count = 0
@@ -178,8 +179,10 @@ def newton(X, y, max_iter=50, tol=1e-8, family=Logistic, **kwargs):
 
         # should this be dask or numpy?
         # currently uses Python 3 specific syntax
-        step, _, _, _ = np.linalg.lstsq(hess, grad)
-        beta = (beta_old - step)
+        step, _, _, _ = np.linalg.lstsq(normalize_to_array(hess), normalize_to_array(grad))
+        step_like = np.empty_like(X, shape=step.shape)
+        step_like[:] = step
+        beta = (beta_old - step_like)
 
         iter_count += 1
 
@@ -225,14 +228,19 @@ def admm(X, y, regularizer='l1', lamduh=0.1, rho=1, over_relax=1,
     def create_local_gradient(func):
         @functools.wraps(func)
         def wrapped(beta, X, y, z, u, rho):
-            return func(beta, X, y) + rho * (beta - z + u)
+            beta_like = np.empty_like(X, shape=beta.shape)
+            beta_like[:] = beta
+            return normalize_to_array(func(beta_like, X, y) + rho *
+                                      (beta_like - z + u))
         return wrapped
 
     def create_local_f(func):
         @functools.wraps(func)
         def wrapped(beta, X, y, z, u, rho):
-            return func(beta, X, y) + (rho / 2) * np.dot(beta - z + u,
-                                                         beta - z + u)
+            beta_like = np.empty_like(X, shape=beta.shape)
+            beta_like[:] = beta
+            return normalize_to_array(func(beta_like, X, y) + (rho / 2) *
+                                      np.dot(beta_like - z + u, beta_like - z + u))
         return wrapped
 
     f = create_local_f(pointwise_loss)
@@ -252,9 +260,9 @@ def admm(X, y, regularizer='l1', lamduh=0.1, rho=1, over_relax=1,
     else:
         yD = [y]
 
-    z = np.zeros(p)
-    u = np.array([np.zeros(p) for i in range(nchunks)])
-    betas = np.array([np.ones(p) for i in range(nchunks)])
+    z = np.zeros_like(X, shape=(p,))
+    u = np.stack([np.zeros_like(X, shape=(p,)) for i in range(nchunks)])
+    betas = np.stack([np.ones_like(X, shape=(p,)) for i in range(nchunks)])
 
     for k in range(max_iter):
 
@@ -262,13 +270,13 @@ def admm(X, y, regularizer='l1', lamduh=0.1, rho=1, over_relax=1,
         new_betas = [delayed(local_update)(xx, yy, bb, z, uu, rho, f=f,
                                            fprime=fprime) for
                      xx, yy, bb, uu in zip(XD, yD, betas, u)]
-        new_betas = np.array(da.compute(*new_betas))
+        new_betas = np.stack(da.compute(*new_betas), axis=0)
 
         beta_hat = over_relax * new_betas + (1 - over_relax) * z
 
         #  z-update step
         zold = z.copy()
-        ztilde = np.mean(beta_hat + np.array(u), axis=0)
+        ztilde = np.mean(beta_hat + u, axis=0)
         z = regularizer.proximal_operator(ztilde, lamduh / (rho * nchunks))
 
         # u-update step
@@ -295,11 +303,14 @@ def local_update(X, y, beta, z, u, rho, f, fprime, solver=fmin_l_bfgs_b):
     u = u.ravel()
     z = z.ravel()
     solver_args = (X, y, z, u, rho)
-    beta, f, d = solver(f, beta, fprime=fprime, args=solver_args,
+    beta, f, d = solver(f, normalize_to_array(beta),
+                        fprime=fprime, args=solver_args,
                         maxiter=200,
                         maxfun=250)
 
-    return beta
+    beta_like = np.empty_like(X, shape=beta.shape)
+    beta_like[:] = beta
+    return beta_like
 
 
 @normalize
@@ -335,21 +346,25 @@ def lbfgs(X, y, regularizer=None, lamduh=1.0, max_iter=100, tol=1e-4,
         pointwise_gradient = regularizer.add_reg_grad(pointwise_gradient, lamduh)
 
     n, p = X.shape
-    beta0 = np.zeros(p)
+    beta0 = np.zeros_like(X, shape=(p,))
 
     def compute_loss_grad(beta, X, y):
-        loss_fn = pointwise_loss(beta, X, y)
-        gradient_fn = pointwise_gradient(beta, X, y)
+        beta_like = np.empty_like(X, shape=beta.shape)
+        beta_like[:] = beta
+        loss_fn = pointwise_loss(beta_like, X, y)
+        gradient_fn = pointwise_gradient(beta_like, X, y)
         loss, gradient = compute(loss_fn, gradient_fn)
-        return loss, gradient.copy()
+        return normalize_to_array(loss), normalize_to_array(gradient.copy())
 
     with dask.config.set(fuse_ave_width=0):  # optimizations slows this down
         beta, loss, info = fmin_l_bfgs_b(
-            compute_loss_grad, beta0, fprime=None,
+            compute_loss_grad, normalize_to_array(beta0), fprime=None,
             args=(X, y),
             iprint=(verbose > 0) - 1, pgtol=tol, maxiter=max_iter)
 
-    return beta
+    beta_like = np.empty_like(X, shape=beta.shape)
+    beta_like[:] = beta
+    return beta_like
 
 
 @normalize
@@ -384,7 +399,7 @@ def proximal_grad(X, y, regularizer='l1', lamduh=0.1, family=Logistic,
     stepSize = 1.0
     recalcRate = 10
     backtrackMult = firstBacktrackMult
-    beta = np.zeros(p)
+    beta = np.zeros_like(X, shape=(p,))
     regularizer = Regularizer.get(regularizer)
 
     for k in range(max_iter):
