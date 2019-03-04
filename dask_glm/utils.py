@@ -66,11 +66,6 @@ def dot(A, B):
 
 
 @dispatch(object)
-def sum(A):
-    return A.sum()
-
-
-@dispatch(object)
 def add_intercept(X):
     return np.concatenate([X, np.ones_like(X, shape=(X.shape[0], 1))], axis=1)
 
