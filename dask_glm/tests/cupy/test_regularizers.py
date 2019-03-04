@@ -1,6 +1,7 @@
-import numpy as np
-import cupy
 import pytest
+cupy = pytest.importorskip('cupy')
+
+import numpy as np
 import cupy.testing as cpt
 from dask_glm import regularizers as regs
 

@@ -1,14 +1,14 @@
 import pytest
+cupy = pytest.importorskip('cupy')
 
 from dask import persist
 import numpy as np
-import cupy
 
 from dask.array.utils import normalize_to_array
 from dask_glm.algorithms import admm, local_update
 from dask_glm.families import Logistic, Normal
 from dask_glm.regularizers import L1
-from dask_glm.utils import cupy_make_y
+from dask_glm.tests.cupy.utils import cupy_make_y
 
 
 @pytest.mark.parametrize('N', [1000, 10000])

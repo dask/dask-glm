@@ -5,7 +5,6 @@ import sys
 
 import dask.array as da
 import numpy as np
-import cupy
 from functools import wraps
 from multipledispatch import dispatch
 
@@ -158,12 +157,6 @@ def make_y(X, beta=np.array([1.5, -3]), chunks=2):
     n, p = X.shape
     z0 = X.dot(beta)
     y = da.random.random(z0.shape, chunks=z0.chunks) < sigmoid(z0)
-    return y
-
-def cupy_make_y(X, beta=cupy.array([1.5, -3])):
-    n, p = X.shape
-    z0 = X.dot(beta)
-    y = cupy.random.random(z0.shape) < sigmoid(z0)
     return y
 
 def mean_squared_error(y_true, y_pred):

@@ -1,14 +1,15 @@
 import pytest
+cupy = pytest.importorskip('cupy')
 
 from dask import persist
 import numpy as np
-import cupy
 
 from dask_glm.algorithms import (newton, lbfgs, proximal_grad,
                                  gradient_descent, admm)
 from dask_glm.families import Logistic, Normal, Poisson
 from dask_glm.regularizers import Regularizer
-from dask_glm.utils import sigmoid, cupy_make_y
+from dask_glm.utils import sigmoid
+from dask_glm.tests.cupy.utils import cupy_make_y
 
 
 def add_l1(f, lam):
