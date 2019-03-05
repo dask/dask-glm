@@ -35,3 +35,33 @@ and can score known observations with the ``.score`` method.
    array([False, False, False, True, ... True, False, True, True], dtype=bool)
 
 See the :ref:`api-reference` for more.
+
+
+CuPy
+----
+
+Similarly to Dask Array, we can use CuPy arrays to fit and predict data on a
+CUDA-capable GPU. From the example given in the previous sections, we only need
+a couple of trivial changes. First, we load the CuPy datasets:
+
+.. code-block:: python
+
+   >>> from dask_glm.datasets import make_classification
+
+Second, as CuPy does not defer computation, we remove the ``.compute()`` call
+after the predictor:
+
+.. code-block:: python
+
+   >>> lr.predict(X).compute()
+
+The full code should look like:
+
+.. code-block:: python
+
+   >>> from dask_glm.estimators import LogisticRegression
+   >>> from dask_glm.datasets import make_classification
+   >>> X, y = make_classification()
+   >>> lr = LogisticRegression()
+   >>> lr.fit(X, y)
+   >>> lr.predict(X).compute()
