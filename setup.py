@@ -11,7 +11,7 @@ setup(name='dask-glm',
       maintainer_email='mrocklin@gmail.com',
       license='BSD',
       keywords='dask,glm',
-      packages=['dask_glm'],
+      packages=['dask_glm', 'dask_glm.cupy'],
       long_description=(open('README.rst').read() if exists('README.rst')
                         else ''),
       install_requires=list(open('requirements.txt').read().strip().split('\n')),

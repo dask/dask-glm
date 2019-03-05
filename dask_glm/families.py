@@ -1,6 +1,7 @@
 from __future__ import absolute_import, division, print_function
 
-from dask_glm.utils import dot, exp, log1p, sigmoid
+from dask_glm.utils import dot, sigmoid
+import numpy as np
 
 
 class Logistic(object):
@@ -20,8 +21,8 @@ class Logistic(object):
         Xbeta : array, shape (n_samples, n_features)
         y : array, shape (n_samples)
         """
-        enXbeta = exp(-Xbeta)
-        return (Xbeta + log1p(enXbeta)).sum() - dot(y, Xbeta)
+        enXbeta = np.exp(-Xbeta)
+        return (Xbeta + np.log1p(enXbeta)).sum() - dot(y, Xbeta)
 
     @staticmethod
     def pointwise_loss(beta, X, y):
@@ -92,7 +93,7 @@ class Poisson(object):
     """
     @staticmethod
     def loglike(Xbeta, y):
-        eXbeta = exp(Xbeta)
+        eXbeta = np.exp(Xbeta)
         yXbeta = y * Xbeta
         return (eXbeta - yXbeta).sum()
 
@@ -110,11 +111,11 @@ class Poisson(object):
 
     @staticmethod
     def gradient(Xbeta, X, y):
-        eXbeta = exp(Xbeta)
+        eXbeta = np.exp(Xbeta)
         return dot(X.T, eXbeta - y)
 
     @staticmethod
     def hessian(Xbeta, X):
-        eXbeta = exp(Xbeta)
+        eXbeta = np.exp(Xbeta)
         x_diag_eXbeta = eXbeta[:, None] * X
         return dot(X.T, x_diag_eXbeta)

@@ -21,7 +21,7 @@ def normalize(algo):
                 raise ValueError('Multiple constant columns detected!')
             mean[intercept_idx] = 0
             std[intercept_idx] = 1
-            mean = mean if len(intercept_idx[0]) else np.zeros(mean.shape)
+            mean = mean if len(intercept_idx[0]) else np.zeros_like(mean)
             Xn = (X - mean) / std
             out = algo(Xn, y, *args, **kwargs).copy()
             i_adj = np.sum(out * mean / std)
@@ -34,79 +34,13 @@ def normalize(algo):
 
 def sigmoid(x):
     """Sigmoid function of x."""
-    return 1 / (1 + exp(-x))
-
-
-@dispatch(object)
-def exp(A):
-    return A.exp()
-
-
-@dispatch(float)
-def exp(A):
-    return np.exp(A)
-
-
-@dispatch(np.ndarray)
-def exp(A):
-    return np.exp(A)
-
-
-@dispatch(da.Array)
-def exp(A):
-    return da.exp(A)
-
-
-@dispatch(object)
-def absolute(A):
-    return abs(A)
-
-
-@dispatch(np.ndarray)
-def absolute(A):
-    return np.absolute(A)
-
-
-@dispatch(da.Array)
-def absolute(A):
-    return da.absolute(A)
-
-
-@dispatch(object)
-def sign(A):
-    return A.sign()
-
-
-@dispatch(np.ndarray)
-def sign(A):
-    return np.sign(A)
-
-
-@dispatch(da.Array)
-def sign(A):
-    return da.sign(A)
-
-
-@dispatch(object)
-def log1p(A):
-    return A.log1p()
-
-
-@dispatch(np.ndarray)
-def log1p(A):
-    return np.log1p(A)
-
-
-@dispatch(da.Array)
-def log1p(A):
-    return da.log1p(A)
+    return 1 / (1 + np.exp(-x))
 
 
 @dispatch(object, object)
 def dot(A, B):
     x = max([A, B], key=lambda x: getattr(x, '__array_priority__', 0))
-    module = package_of(x)
-    return module.dot(A, B)
+    return np.dot(A, B)
 
 
 @dispatch(da.Array, np.ndarray)
@@ -132,13 +66,8 @@ def dot(A, B):
 
 
 @dispatch(object)
-def sum(A):
-    return A.sum()
-
-
-@dispatch(np.ndarray)
 def add_intercept(X):
-    return np.concatenate([X, np.ones((X.shape[0], 1))], axis=1)
+    return np.concatenate([X, np.ones_like(X, shape=(X.shape[0], 1))], axis=1)
 
 
 @dispatch(da.Array)
@@ -160,7 +89,6 @@ def make_y(X, beta=np.array([1.5, -3]), chunks=2):
     y = da.random.random(z0.shape, chunks=z0.chunks) < sigmoid(z0)
     return y
 
-
 def mean_squared_error(y_true, y_pred):
     return ((y_true - y_pred) ** 2).mean()
 
@@ -170,7 +98,7 @@ def accuracy_score(y_true, y_pred):
 
 
 def poisson_deviance(y_true, y_pred):
-    return 2 * (y_true * log1p(y_true / y_pred) - (y_true - y_pred)).sum()
+    return 2 * (y_true * np.log1p(y_true / y_pred) - (y_true - y_pred)).sum()
 
 
 try:

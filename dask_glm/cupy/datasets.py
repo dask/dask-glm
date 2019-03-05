@@ -1,9 +1,8 @@
 import numpy as np
-import dask.array as da
+import cupy
 
 
-def make_classification(n_samples=1000, n_features=100, n_informative=2, scale=1.0,
-                        chunksize=100):
+def make_classification(n_samples=1000, n_features=100, n_informative=2, scale=1.0):
     """
     Generate a dummy dataset for classification tasks.
 
@@ -17,8 +16,6 @@ def make_classification(n_samples=1000, n_features=100, n_informative=2, scale=1
         number of features that are correlated with the outcome
     scale : float
         Scale the true coefficient array by this
-    chunksize : int
-        Number of rows per dask array block.
 
     Returns
     -------
@@ -29,22 +26,20 @@ def make_classification(n_samples=1000, n_features=100, n_informative=2, scale=1
     Examples
     --------
     >>> X, y = make_classification()
-    >>> X
-    dask.array<da.random.normal, shape=(1000, 100), dtype=float64, chunksize=(100, 100)>
-    >>> y
-    dask.array<lt, shape=(1000,), dtype=bool, chunksize=(100,)>
+    >>> X.dtype, X.shape
+    (dtype('float64'), (1000, 100))
+    >>> y.dtype, y.shape
+    (dtype('bool'), (1000,))
     """
-    X = da.random.normal(0, 1, size=(n_samples, n_features),
-                         chunks=(chunksize, n_features))
+    X = cupy.random.normal(0, 1, size=(n_samples, n_features))
     informative_idx = np.random.choice(n_features, n_informative)
-    beta = (np.random.random(n_features) - 1) * scale
+    beta = (cupy.random.random(n_features) - 1) * scale
     z0 = X[:, informative_idx].dot(beta[informative_idx])
-    y = da.random.random(z0.shape, chunks=(chunksize,)) < 1 / (1 + np.exp(-z0))
+    y = cupy.random.random(z0.shape) < 1 / (1 + np.exp(-z0))
     return X, y
 
 
-def make_regression(n_samples=1000, n_features=100, n_informative=2, scale=1.0,
-                    chunksize=100):
+def make_regression(n_samples=1000, n_features=100, n_informative=2, scale=1.0):
     """
     Generate a dummy dataset for regression tasks.
 
@@ -58,8 +53,6 @@ def make_regression(n_samples=1000, n_features=100, n_informative=2, scale=1.0,
         number of features that are correlated with the outcome
     scale : float
         Scale the true coefficient array by this
-    chunksize : int
-        Number of rows per dask array block.
 
     Returns
     -------
@@ -70,22 +63,20 @@ def make_regression(n_samples=1000, n_features=100, n_informative=2, scale=1.0,
     Examples
     --------
     >>> X, y = make_regression()
-    >>> X
-    dask.array<da.random.normal, shape=(1000, 100), dtype=float64, chunksize=(100, 100)>
-    >>> y
-    dask.array<da.random.random_sample, shape=(1000,), dtype=float64, chunksize=(100,)>
+    >>> X.dtype, X.shape
+    (dtype('float64'), (1000, 100))
+    >>> y.dtype, y.shape
+    (dtype('float64'), (1000,))
     """
-    X = da.random.normal(0, 1, size=(n_samples, n_features),
-                         chunks=(chunksize, n_features))
-    informative_idx = np.random.choice(n_features, n_informative)
-    beta = (np.random.random(n_features) - 1) * scale
+    X = cupy.random.normal(0, 1, size=(n_samples, n_features))
+    informative_idx = cupy.random.choice(n_features, n_informative)
+    beta = (cupy.random.random(n_features) - 1) * scale
     z0 = X[:, informative_idx].dot(beta[informative_idx])
-    y = da.random.random(z0.shape, chunks=(chunksize,))
+    y = cupy.random.random(z0.shape)
     return X, y
 
 
-def make_poisson(n_samples=1000, n_features=100, n_informative=2, scale=1.0,
-                 chunksize=100):
+def make_poisson(n_samples=1000, n_features=100, n_informative=2, scale=1.0):
     """
     Generate a dummy dataset for modeling count data.
 
@@ -99,8 +90,6 @@ def make_poisson(n_samples=1000, n_features=100, n_informative=2, scale=1.0,
         number of features that are correlated with the outcome
     scale : float
         Scale the true coefficient array by this
-    chunksize : int
-        Number of rows per dask array block.
 
     Returns
     -------
@@ -110,17 +99,16 @@ def make_poisson(n_samples=1000, n_features=100, n_informative=2, scale=1.0,
 
     Examples
     --------
-    >>> X, y = make_classification()
-    >>> X
-    dask.array<da.random.normal, shape=(1000, 100), dtype=float64, chunksize=(100, 100)>
-    >>> y
-    dask.array<da.random.poisson, shape=(1000,), dtype=int64, chunksize=(100,)>
+    >>> X, y = make_poisson()
+    >>> X.dtype, X.shape 
+    (dtype('float64'), (1000, 100))
+    >>> y.dtype, y.shape
+    (dtype('int64'), (1000,))
     """
-    X = da.random.normal(0, 1, size=(n_samples, n_features),
-                         chunks=(chunksize, n_features))
-    informative_idx = np.random.choice(n_features, n_informative)
-    beta = (np.random.random(n_features) - 1) * scale
+    X = cupy.random.normal(0, 1, size=(n_samples, n_features))
+    informative_idx = cupy.random.choice(n_features, n_informative)
+    beta = (cupy.random.random(n_features) - 1) * scale
     z0 = X[:, informative_idx].dot(beta[informative_idx])
     rate = np.exp(z0)
-    y = da.random.poisson(rate, size=1, chunks=(chunksize,))
+    y = cupy.random.poisson(rate)
     return X, y
