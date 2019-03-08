@@ -1,6 +1,8 @@
 """
 Models following scikit-learn's estimator API.
 """
+import warnings
+
 from sklearn.base import BaseEstimator
 
 from . import algorithms
@@ -9,6 +11,12 @@ from .utils import (
     sigmoid, dot, add_intercept, mean_squared_error, accuracy_score, exp,
     poisson_deviance
 )
+
+msg = ("The 'dask_glm.estimators' module is deprecated in favor of "
+       "'dask_ml.linear_models'. Please install 'dask-ml' and update "
+       "your imports.")
+
+warnings.warn(msg, FutureWarning)
 
 
 class _GLM(BaseEstimator):
