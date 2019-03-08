@@ -141,16 +141,16 @@ def add_intercept(X):
     return np.concatenate([X, np.ones((X.shape[0], 1))], axis=1)
 
 
+def _add_intercept_block(x):
+    o = np.ones((len(x), 1), dtype=x.dtype)
+    return np.concatenate([x, o], axis=1)
+
+
 @dispatch(da.Array)
 def add_intercept(X):
-    if np.isnan(np.sum(X.shape)):
-        raise NotImplementedError("Can not add intercept to array with "
-                                  "unknown chunk shape")
     j, k = X.chunks
-    o = da.ones((X.shape[0], 1), chunks=(j, 1))
-    # TODO: Needed this `.rechunk` for the solver to work
-    # Is this OK / correct?
-    X_i = da.concatenate([X, o], axis=1).rechunk((j, (k[0] + 1,)))
+    k2 = (__builtins__['sum'](k) + 1,)
+    X_i = X.map_blocks(_add_intercept_block, dtype=X.dtype, chunks=(j, k2))
     return X_i
 
 
