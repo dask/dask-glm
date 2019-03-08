@@ -1,4 +1,5 @@
 import pytest
+import dask
 
 
 def test_warns():

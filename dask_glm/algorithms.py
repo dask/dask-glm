@@ -3,7 +3,8 @@
 
 from __future__ import absolute_import, division, print_function
 
-from dask import delayed, persist, compute, set_options
+import dask
+from dask import delayed, persist, compute
 import functools
 import numpy as np
 import dask.array as da
@@ -20,10 +21,12 @@ def compute_stepsize_dask(beta, step, Xbeta, Xstep, y, curr_val,
                           armijoMult=0.1, backtrackMult=0.1):
     """Compute the optimal stepsize
 
+    Parameters
+    ----------
     beta : array-like
     step : float
-    XBeta : array-lie
-    Xstep :
+    XBeta : array-like
+    Xstep : float
     y : array-like
     curr_val : float
     famlily : Family, optional
@@ -33,7 +36,7 @@ def compute_stepsize_dask(beta, step, Xbeta, Xstep, y, curr_val,
 
     Returns
     -------
-    stepSize : flaot
+    stepSize : float
     beta : array-like
     xBeta : array-like
     func : callable
@@ -85,7 +88,6 @@ def gradient_descent(X, y, max_iter=100, tol=1e-14, family=Logistic, **kwargs):
     -------
     beta : array-like, shape (n_features,)
     """
-
     loglike, gradient = family.loglike, family.gradient
     n, p = X.shape
     firstBacktrackMult = 0.1
@@ -139,7 +141,7 @@ def gradient_descent(X, y, max_iter=100, tol=1e-14, family=Logistic, **kwargs):
 
 @normalize
 def newton(X, y, max_iter=50, tol=1e-8, family=Logistic, **kwargs):
-    """Newtons Method for Logistic Regression.
+    """Newton's Method for Logistic Regression.
 
     Parameters
     ----------
@@ -203,7 +205,7 @@ def admm(X, y, regularizer='l1', lamduh=0.1, rho=1, over_relax=1,
     X : array-like, shape (n_samples, n_features)
     y : array-like, shape (n_samples,)
     regularizer : str or Regularizer
-    lambuh : float
+    lamduh : float
     rho : float
     over_relax : FLOAT
     max_iter : int
@@ -216,7 +218,6 @@ def admm(X, y, regularizer='l1', lamduh=0.1, rho=1, over_relax=1,
     -------
     beta : array-like, shape (n_features,)
     """
-
     pointwise_loss = family.pointwise_loss
     pointwise_gradient = family.pointwise_gradient
     regularizer = Regularizer.get(regularizer)
@@ -310,6 +311,8 @@ def lbfgs(X, y, regularizer=None, lamduh=1.0, max_iter=100, tol=1e-4,
     ----------
     X : array-like, shape (n_samples, n_features)
     y : array-like, shape (n_samples,)
+    regularizer : str or Regularizer
+    lamduh : float
     max_iter : int
         maximum number of iterations to attempt before declaring
         failure to converge
@@ -317,12 +320,13 @@ def lbfgs(X, y, regularizer=None, lamduh=1.0, max_iter=100, tol=1e-4,
         Maximum allowed change from prior iteration required to
         declare convergence
     family : Family
+    verbose : bool, default False
+        whether to print diagnostic information during convergence
 
     Returns
     -------
     beta : array-like, shape (n_features,)
     """
-
     pointwise_loss = family.pointwise_loss
     pointwise_gradient = family.pointwise_gradient
     if regularizer is not None:
@@ -339,7 +343,7 @@ def lbfgs(X, y, regularizer=None, lamduh=1.0, max_iter=100, tol=1e-4,
         loss, gradient = compute(loss_fn, gradient_fn)
         return loss, gradient.copy()
 
-    with set_options(fuse_ave_width=0):  # optimizations slows this down
+    with dask.config.set(fuse_ave_width=0):  # optimizations slows this down
         beta, loss, info = fmin_l_bfgs_b(
             compute_loss_grad, beta0, fprime=None,
             args=(X, y),
@@ -352,11 +356,14 @@ def lbfgs(X, y, regularizer=None, lamduh=1.0, max_iter=100, tol=1e-4,
 def proximal_grad(X, y, regularizer='l1', lamduh=0.1, family=Logistic,
                   max_iter=100, tol=1e-8, **kwargs):
     """
+    Proximal Gradient Method
 
     Parameters
     ----------
     X : array-like, shape (n_samples, n_features)
     y : array-like, shape (n_samples,)
+    regularizer : str or Regularizer
+    lamduh : float
     max_iter : int
         maximum number of iterations to attempt before declaring
         failure to converge
@@ -364,14 +371,11 @@ def proximal_grad(X, y, regularizer='l1', lamduh=0.1, family=Logistic,
         Maximum allowed change from prior iteration required to
         declare convergence
     family : Family
-    verbose : bool, default False
-        whether to print diagnostic information during convergence
 
     Returns
     -------
     beta : array-like, shape (n_features,)
     """
-
     n, p = X.shape
     firstBacktrackMult = 0.1
     nextBacktrackMult = 0.5

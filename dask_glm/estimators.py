@@ -20,12 +20,23 @@ warnings.warn(msg, FutureWarning)
 
 
 class _GLM(BaseEstimator):
+    """ Base estimator for Generalized Linear Models
 
+    You should not use this class directly, you should use one of its subclasses
+    instead.
+
+    This class should be subclassed and paired with a GLM Family object like
+    Logistic, Linear, Poisson, etc. to form an estimator.
+
+    See Also
+    --------
+    LinearRegression
+    LogisticRegression
+    PoissonRegression
+    """
     @property
     def family(self):
-        """
-        The family this estimator is for.
-        """
+        """ The family for which this is the estimator """
 
     def __init__(self, fit_intercept=True, solver='admm', regularizer='l2',
                  max_iter=100, tol=1e-4, lamduh=1.0, rho=1,
@@ -78,7 +89,7 @@ class _GLM(BaseEstimator):
 
 class LogisticRegression(_GLM):
     """
-    Esimator for logistic regression.
+    Estimator for logistic regression.
 
     Parameters
     ----------
@@ -111,16 +122,13 @@ class LogisticRegression(_GLM):
     --------
     >>> from dask_glm.datasets import make_classification
     >>> X, y = make_classification()
-    >>> lr = LogisticRegression()
-    >>> lr.fit(X, y)
-    >>> lr.predict(X)
-    >>> lr.predict_proba(X)
+    >>> est = LogisticRegression()
+    >>> est.fit(X, y)
+    >>> est.predict(X)
+    >>> est.predict_proba(X)
     >>> est.score(X, y)
     """
-
-    @property
-    def family(self):
-        return families.Logistic
+    family = families.Logistic
 
     def predict(self, X):
         return self.predict_proba(X) > .5  # TODO: verify, multiclass broken
@@ -135,7 +143,7 @@ class LogisticRegression(_GLM):
 
 class LinearRegression(_GLM):
     """
-    Esimator for a linear model using Ordinary Least Squares.
+    Estimator for a linear model using Ordinary Least Squares.
 
     Parameters
     ----------
@@ -173,9 +181,7 @@ class LinearRegression(_GLM):
     >>> est.predict(X)
     >>> est.score(X, y)
     """
-    @property
-    def family(self):
-        return families.Normal
+    family = families.Normal
 
     def predict(self, X):
         X_ = self._maybe_add_intercept(X)
@@ -187,7 +193,7 @@ class LinearRegression(_GLM):
 
 class PoissonRegression(_GLM):
     """
-    Esimator for Poisson Regression.
+    Estimator for Poisson Regression.
 
     Parameters
     ----------
@@ -220,14 +226,12 @@ class PoissonRegression(_GLM):
     --------
     >>> from dask_glm.datasets import make_poisson
     >>> X, y = make_poisson()
-    >>> pr = PoissonRegression()
-    >>> pr.fit(X, y)
-    >>> pr.predict(X)
-    >>> pr.get_deviance(X, y)
+    >>> est = PoissonRegression()
+    >>> est.fit(X, y)
+    >>> est.predict(X)
+    >>> est.get_deviance(X, y)
     """
-    @property
-    def family(self):
-        return families.Poisson
+    family = families.Poisson
 
     def predict(self, X):
         X_ = self._maybe_add_intercept(X)
