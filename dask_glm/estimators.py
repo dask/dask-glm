@@ -63,7 +63,7 @@ class _GLM(BaseEstimator):
 
     def fit(self, X, y=None):
         X_ = self._maybe_add_intercept(X)
-        self._coef = algorithms._solvers[self.solver](X_, y, **self._fit_kwargs)
+        self._coef, self.n_iter_ = algorithms._solvers[self.solver](X_, y, **self._fit_kwargs)
 
         if self.fit_intercept:
             self.coef_ = self._coef[:-1]
@@ -106,6 +106,8 @@ class LogisticRegression(_GLM):
     ----------
     coef_ : array, shape (n_classes, n_features)
         The learned value for the model's coefficients
+    n_iter_ : integer
+        The number of iterations executed
     intercept_ : float of None
         The learned value for the intercept, if one was added
         to the model
@@ -160,6 +162,8 @@ class LinearRegression(_GLM):
     ----------
     coef_ : array, shape (n_classes, n_features)
         The learned value for the model's coefficients
+    n_iter_ : integer
+        The number of iterations executed
     intercept_ : float of None
         The learned value for the intercept, if one was added
         to the model
@@ -210,6 +214,8 @@ class PoissonRegression(_GLM):
     ----------
     coef_ : array, shape (n_classes, n_features)
         The learned value for the model's coefficients
+    n_iter_ : integer
+        The number of iterations executed
     intercept_ : float of None
         The learned value for the intercept, if one was added
         to the model
