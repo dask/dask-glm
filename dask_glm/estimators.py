@@ -32,7 +32,7 @@ class _GLM(BaseEstimator):
 
     def __init__(self, fit_intercept=True, solver='admm', regularizer='l2',
                  max_iter=100, tol=1e-4, lamduh=1.0, rho=1,
-                 over_relax=1, abstol=1e-4, reltol=1e-2):
+                 over_relax=1, abstol=1e-4, reltol=1e-2, **kwargs):
         self.fit_intercept = fit_intercept
         self.solver = solver
         self.regularizer = regularizer
@@ -61,9 +61,10 @@ class _GLM(BaseEstimator):
 
         self._fit_kwargs = {k: getattr(self, k) for k in fit_kwargs}
 
-    def fit(self, X, y=None):
+    def fit(self, X, y=None, **kwargs):
         X_ = self._maybe_add_intercept(X)
-        self._coef = algorithms._solvers[self.solver](X_, y, **self._fit_kwargs)
+        self._coef = algorithms._solvers[self.solver](X_, y, **self._fit_kwargs,
+                                                      **kwargs)
 
         if self.fit_intercept:
             self.coef_ = self._coef[:-1]
