@@ -3,10 +3,12 @@ from __future__ import absolute_import, division, print_function
 import inspect
 import sys
 
+from dask.distributed import get_client
 import dask.array as da
 import numpy as np
 from functools import wraps
 from multipledispatch import dispatch
+import sparse
 
 
 def normalize(algo):
@@ -136,9 +138,21 @@ def sum(A):
     return A.sum()
 
 
+def is_dask_array_sparse(X):
+    """
+    Check using _meta if a dask array contains sparse arrays
+    """
+    return isinstance(X._meta, sparse.SparseArray)
+
+
 @dispatch(np.ndarray)
 def add_intercept(X):
     return np.concatenate([X, np.ones((X.shape[0], 1))], axis=1)
+
+
+@dispatch(sparse.SparseArray)
+def add_intercept(X):
+    return sparse.concatenate([X, sparse.COO(np.ones((X.shape[0], 1)))], axis=1)
 
 
 @dispatch(da.Array)
@@ -148,6 +162,8 @@ def add_intercept(X):
                                   "unknown chunk shape")
     j, k = X.chunks
     o = da.ones((X.shape[0], 1), chunks=(j, 1))
+    if is_dask_array_sparse(X):
+        o = o.map_blocks(sparse.COO)
     # TODO: Needed this `.rechunk` for the solver to work
     # Is this OK / correct?
     X_i = da.concatenate([X, o], axis=1).rechunk((j, (k[0] + 1,)))
@@ -194,3 +210,18 @@ def package_of(obj):
         return
     base, _sep, _stem = mod.__name__.partition('.')
     return sys.modules[base]
+
+
+def scatter_array(arr, dask_client):
+    """Scatter a large numpy array into workers
+    Return the equivalent dask array
+    """
+    future_arr = dask_client.scatter(arr)
+    return da.from_delayed(future_arr, shape=arr.shape, dtype=arr.dtype)
+
+
+def get_distributed_client():
+    try:
+        return get_client()
+    except ValueError:
+        return None

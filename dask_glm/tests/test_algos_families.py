@@ -42,7 +42,7 @@ def make_intercept_data(N, p, seed=20009):
                          [lbfgs,
                           newton,
                           gradient_descent])
-@pytest.mark.parametrize('N, p, seed',
+@pytest.mark.parametrize('N, p, seed,',
                          [(100, 2, 20009),
                           (250, 12, 90210),
                           (95, 6, 70605)])
@@ -151,3 +151,14 @@ else:
                 b = func(X, y, **kwargs)
 
                 assert (a == b).all()
+
+    def broadcast_lbfgs_weight():
+        with cluster() as (s, [a, b]):
+            with Client(s['address'], loop=loop) as c:
+                X, y = make_intercept_data(1000, 10)
+                coefs = lbfgs(X, y, dask_distributed_client=c)
+                p = sigmoid(X.dot(coefs).compute())
+
+                y_sum = y.compute().sum()
+                p_sum = p.sum()
+                assert np.isclose(y_sum, p_sum, atol=1e-1)
