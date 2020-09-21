@@ -217,7 +217,8 @@ def scatter_array(arr, dask_client):
     Return the equivalent dask array
     """
     future_arr = dask_client.scatter(arr)
-    return da.from_delayed(future_arr, shape=arr.shape, dtype=arr.dtype)
+    return da.from_delayed(future_arr, shape=arr.shape, dtype=arr.dtype,
+                           meta=np.zeros_like(arr, shape=()))
 
 
 def get_distributed_client():
