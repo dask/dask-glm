@@ -116,15 +116,9 @@ def test_dok_dask_array_is_sparse():
     assert utils.is_dask_array_sparse(da.from_array(sparse.DOK((10, 10))))
 
 
-try:
-    import cupy
-    has_cupy = True
-except ImportError:
-    has_cupy = False
-
-
-@pytest.mark.skipif(not has_cupy, reason="requires cupy")
 def test_dot_with_cupy():
+    cupy = pytest.importorskip('cupy')
+
     # dot(cupy.array, cupy.array)
     A = cupy.random.rand(100, 100)
     B = cupy.random.rand(100)
