@@ -106,9 +106,17 @@ def log1p(A):
 
 @dispatch(object, object)
 def dot(A, B):
-    x = max([A, B], key=lambda x: getattr(x, '__array_priority__', 0))
-    module = package_of(x)
-    return module.dot(A, B)
+    if isinstance(A, da.Array) and "cupy" in str(type(B)):
+        return A.dot(B)
+    elif "cupy" in str(type(A)) and "cupy" in str(type(B)):
+        return A.dot(B)
+    elif "cupy" in str(type(A)) and isinstance(B, da.Array):
+        A = da.from_array(A, chunks=A.shape)
+        return da.dot(A, B)
+    else:
+        x = max([A, B], key=lambda x: getattr(x, '__array_priority__', 0))
+        module = package_of(x)
+        return module.dot(A, B)
 
 
 @dispatch(da.Array, np.ndarray)

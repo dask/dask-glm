@@ -114,3 +114,34 @@ def test_dask_array_is_sparse():
                           "(https://github.com/pydata/sparse/issues/292)")
 def test_dok_dask_array_is_sparse():
     assert utils.is_dask_array_sparse(da.from_array(sparse.DOK((10, 10))))
+
+
+try:
+    import cupy
+    has_cupy = True
+except ImportError:
+    has_cupy = False
+
+
+@pytest.mark.skipif(not has_cupy, reason="requires cupy")
+def test_dot_with_cupy():
+    # dot(cupy.array, cupy.array)
+    A = cupy.random.rand(100, 100)
+    B = cupy.random.rand(100)
+    res_cupy = utils.dot(A, B)
+    res_numpy = utils.dot(A.get(), B.get())
+    assert_eq(res_cupy.get(), res_numpy)
+
+    # dot(dask.array, cupy.array)
+    dA = da.from_array(A, chunks=(10, 100))
+    res_cupy = utils.dot(dA, B)
+    dA_numpy = dA.map_blocks(lambda x: x.get(), dtype=dA.dtype)
+    res_numpy = utils.dot(dA_numpy, B.get())
+    assert_eq(res_cupy.compute().get(), res_numpy.compute())
+
+    # dot(cupy.array, dask.array)
+    dB = da.from_array(B, chunks=(10))
+    res_cupy = utils.dot(A, dB)
+    dB_numpy = dB.map_blocks(lambda x: x.get(), dtype=dA.dtype)
+    res_numpy = utils.dot(A.get(), dB_numpy)
+    assert_eq(res_cupy.compute().get(), res_numpy.compute())
