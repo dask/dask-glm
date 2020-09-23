@@ -107,7 +107,8 @@ def log1p(A):
 @dispatch(object, object)
 def dot(A, B):
     if isinstance(A, da.Array) and "cupy" in str(type(B)):
-        return A.dot(B)
+        B = da.from_array(B, chunks=B.shape)
+        return da.dot(A, B)
     elif "cupy" in str(type(A)) and "cupy" in str(type(B)):
         return A.dot(B)
     elif "cupy" in str(type(A)) and isinstance(B, da.Array):
