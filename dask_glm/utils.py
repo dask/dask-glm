@@ -104,42 +104,19 @@ def log1p(A):
     return da.log1p(A)
 
 
+def _to_dask_array(x):
+    if isinstance(x, da.Array):
+        return x
+    else:
+        return da.from_array(x, chunks=x.shape)
+
+
 @dispatch(object, object)
 def dot(A, B):
-    if isinstance(A, da.Array) and "cupy" in str(type(B)):
-        B = da.from_array(B, chunks=B.shape)
-        return da.dot(A, B)
-    elif "cupy" in str(type(A)) and "cupy" in str(type(B)):
-        return A.dot(B)
-    elif "cupy" in str(type(A)) and isinstance(B, da.Array):
-        A = da.from_array(A, chunks=A.shape)
-        return da.dot(A, B)
-    else:
-        x = max([A, B], key=lambda x: getattr(x, '__array_priority__', 0))
-        module = package_of(x)
-        return module.dot(A, B)
-
-
-@dispatch(da.Array, np.ndarray)
-def dot(A, B):
-    B = da.from_array(B, chunks=B.shape)
-    return da.dot(A, B)
-
-
-@dispatch(np.ndarray, da.Array)
-def dot(A, B):
-    A = da.from_array(A, chunks=A.shape)
-    return da.dot(A, B)
-
-
-@dispatch(np.ndarray, np.ndarray)
-def dot(A, B):
+    if isinstance(A, da.Array) or isinstance(B, da.Array):
+        A = _to_dask_array(A)
+        B = _to_dask_array(B)
     return np.dot(A, B)
-
-
-@dispatch(da.Array, da.Array)
-def dot(A, B):
-    return da.dot(A, B)
 
 
 @dispatch(object)
