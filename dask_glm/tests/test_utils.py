@@ -139,3 +139,21 @@ def test_dot_with_cupy():
     dB_numpy = dB.map_blocks(lambda x: x.get(), dtype=dA.dtype)
     res_numpy = utils.dot(A.get(), dB_numpy)
     assert_eq(res_cupy.compute().get(), res_numpy.compute())
+
+
+def test_dot_with_sparse():
+    A = sparse.random((1024, 64))
+    B = sparse.random((64))
+    ans = sparse.dot(A, B)
+   
+    # dot(sparse.array, sparse.array)
+    res = utils.dot(A, B)
+    assert_eq(ans, res)
+    
+    # dot(sparse.array, dask.array)
+    res = utils.dot(A, da.from_array(B, chunks=B.shape))
+    assert_eq(ans, res.compute())
+
+    # dot(sparse.array, dask.array)
+    res = utils.dot(da.from_array(A, chunks=A.shape), B)
+    assert_eq(ans, res.compute()) 
