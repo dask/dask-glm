@@ -104,18 +104,11 @@ def log1p(A):
     return da.log1p(A)
 
 
-def _to_dask_array(x):
-    if isinstance(x, da.Array):
-        return x
-    else:
-        return da.from_array(x, chunks=x.shape)
-
-
 @dispatch(object, object)
 def dot(A, B):
     if isinstance(A, da.Array) or isinstance(B, da.Array):
-        A = _to_dask_array(A)
-        B = _to_dask_array(B)
+        A = da.asarray(A, chunks=A.shape)
+        B = da.asarray(B, chunks=B.shape)
     return np.dot(A, B)
 
 

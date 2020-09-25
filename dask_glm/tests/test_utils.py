@@ -150,6 +150,6 @@ def test_dot_with_sparse():
     res = utils.dot(A, da.from_array(B, chunks=B.shape))
     assert_eq(ans, res.compute())
 
-    # dot(sparse.array, dask.array)
+    # dot(dask.array, sparse.array)
     res = utils.dot(da.from_array(A, chunks=A.shape), B)
     assert_eq(ans, res.compute())
