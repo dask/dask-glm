@@ -114,3 +114,42 @@ def test_dask_array_is_sparse():
                           "(https://github.com/pydata/sparse/issues/292)")
 def test_dok_dask_array_is_sparse():
     assert utils.is_dask_array_sparse(da.from_array(sparse.DOK((10, 10))))
+
+
+def test_dot_with_cupy():
+    cupy = pytest.importorskip('cupy')
+
+    # dot(cupy.array, cupy.array)
+    A = cupy.random.rand(100, 100)
+    B = cupy.random.rand(100)
+    ans = cupy.dot(A, B)
+    res = utils.dot(A, B)
+    assert_eq(ans, res)
+
+    # dot(dask.array, cupy.array)
+    dA = da.from_array(A, chunks=(10, 100))
+    res = utils.dot(dA, B).compute()
+    assert_eq(ans, res)
+
+    # dot(cupy.array, dask.array)
+    dB = da.from_array(B, chunks=(10))
+    res = utils.dot(A, dB).compute()
+    assert_eq(ans, res)
+
+
+def test_dot_with_sparse():
+    A = sparse.random((1024, 64))
+    B = sparse.random((64))
+    ans = sparse.dot(A, B)
+
+    # dot(sparse.array, sparse.array)
+    res = utils.dot(A, B)
+    assert_eq(ans, res)
+
+    # dot(sparse.array, dask.array)
+    res = utils.dot(A, da.from_array(B, chunks=B.shape))
+    assert_eq(ans, res.compute())
+
+    # dot(dask.array, sparse.array)
+    res = utils.dot(da.from_array(A, chunks=A.shape), B)
+    assert_eq(ans, res.compute())
