@@ -97,7 +97,7 @@ def gradient_descent(X, y, max_iter=100, tol=1e-14, family=Logistic, **kwargs):
     stepSize = 1.0
     recalcRate = 10
     backtrackMult = firstBacktrackMult
-    beta = np.zeros(p)
+    beta = np.zeros_like(X._meta, shape=(p))
 
     for k in range(max_iter):
         # how necessary is this recalculation?
@@ -161,9 +161,9 @@ def newton(X, y, max_iter=50, tol=1e-8, family=Logistic, **kwargs):
     """
     gradient, hessian = family.gradient, family.hessian
     n, p = X.shape
-    beta = np.zeros(p)  # always init to zeros?
+    beta = np.zeros_like(X._meta, shape=(p))
     Xbeta = dot(X, beta)
-
+    print(Xbeta)
     iter_count = 0
     converged = False
 
@@ -387,7 +387,7 @@ def proximal_grad(X, y, regularizer='l1', lamduh=0.1, family=Logistic,
     stepSize = 1.0
     recalcRate = 10
     backtrackMult = firstBacktrackMult
-    beta = np.zeros(p)
+    beta = np.zeros_like(X._meta, shape=(p))
     regularizer = Regularizer.get(regularizer)
 
     for k in range(max_iter):
@@ -406,8 +406,8 @@ def proximal_grad(X, y, regularizer='l1', lamduh=0.1, family=Logistic,
         # Compute the step size
         lf = func
         for ii in range(100):
-            beta = regularizer.proximal_operator(obeta - stepSize * gradient, stepSize * lamduh)
-            step = obeta - beta
+            beta = regularizer.proximal_operator(- stepSize * gradient + obeta, stepSize * lamduh)
+            step = - beta + obeta
             Xbeta = X.dot(beta)
 
             Xbeta, beta = persist(Xbeta, beta)

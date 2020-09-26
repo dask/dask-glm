@@ -23,7 +23,7 @@ def normalize(algo):
                 raise ValueError('Multiple constant columns detected!')
             mean[intercept_idx] = 0
             std[intercept_idx] = 1
-            mean = mean if len(intercept_idx[0]) else np.zeros(mean.shape)
+            mean = mean if len(intercept_idx[0]) else np.zeros_like(X._meta, shape=mean.shape)
             Xn = (X - mean) / std
             out = algo(Xn, y, *args, **kwargs).copy()
             i_adj = np.sum(out * mean / std)
