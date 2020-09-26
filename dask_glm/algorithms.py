@@ -163,6 +163,7 @@ def newton(X, y, max_iter=50, tol=1e-8, family=Logistic, **kwargs):
     n, p = X.shape
     beta = np.zeros_like(X._meta, shape=(p))
     Xbeta = dot(X, beta)
+
     iter_count = 0
     converged = False
 
