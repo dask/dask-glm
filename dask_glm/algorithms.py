@@ -9,7 +9,7 @@ import functools
 import numpy as np
 import dask.array as da
 from scipy.optimize import fmin_l_bfgs_b
-
+from dask.array.utils import normalize_to_array
 
 from dask_glm.utils import dot, normalize, scatter_array, get_distributed_client
 from dask_glm.families import Logistic
@@ -339,19 +339,27 @@ def lbfgs(X, y, regularizer=None, lamduh=1.0, max_iter=100, tol=1e-4,
     beta0 = np.zeros(p)
 
     def compute_loss_grad(beta, X, y):
+        beta = _maybe_to_cupy(beta, X)
         scatter_beta = scatter_array(
             beta, dask_distributed_client) if dask_distributed_client else beta
         loss_fn = pointwise_loss(scatter_beta, X, y)
         gradient_fn = pointwise_gradient(scatter_beta, X, y)
         loss, gradient = compute(loss_fn, gradient_fn)
-        return loss, gradient.copy()
+        return normalize_to_array(loss), normalize_to_array(gradient.copy())
 
     with dask.config.set(fuse_ave_width=0):  # optimizations slows this down
         beta, loss, info = fmin_l_bfgs_b(
             compute_loss_grad, beta0, fprime=None,
             args=(X, y),
             iprint=(verbose > 0) - 1, pgtol=tol, maxiter=max_iter)
+    beta = _maybe_to_cupy(beta, X)
+    return beta
 
+
+def _maybe_to_cupy(beta, X):
+    if 'cupy' in str(type(X._meta)):
+        import cupy
+        return cupy.asarray(beta)
     return beta
 
 
