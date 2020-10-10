@@ -23,7 +23,7 @@ def normalize(algo):
                 raise ValueError('Multiple constant columns detected!')
             mean[intercept_idx] = 0
             std[intercept_idx] = 1
-            mean = mean if len(intercept_idx[0]) else np.zeros(mean.shape)
+            mean = mean if len(intercept_idx[0]) else np.zeros_like(X._meta, shape=mean.shape)
             Xn = (X - mean) / std
             out = algo(Xn, y, *args, **kwargs).copy()
             i_adj = np.sum(out * mean / std)
@@ -140,7 +140,7 @@ def add_intercept(X):
         raise NotImplementedError("Can not add intercept to array with "
                                   "unknown chunk shape")
     j, k = X.chunks
-    o = da.ones((X.shape[0], 1), chunks=(j, 1))
+    o = da.ones_like(X, shape=(X.shape[0], 1), chunks=(j, 1))
     if is_dask_array_sparse(X):
         o = o.map_blocks(sparse.COO)
     # TODO: Needed this `.rechunk` for the solver to work
