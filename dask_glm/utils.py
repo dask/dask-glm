@@ -23,7 +23,7 @@ def normalize(algo):
                 raise ValueError('Multiple constant columns detected!')
             mean[intercept_idx] = 0
             std[intercept_idx] = 1
-            mean = mean if len(intercept_idx[0]) else np.zeros_like(X._meta, shape=mean.shape)
+            mean = mean if len(intercept_idx[0]) else safe_zeros_like(X, shape=mean.shape)
             Xn = (X - mean) / std
             out = algo(Xn, y, *args, **kwargs).copy()
             i_adj = np.sum(out * mean / std)
@@ -41,7 +41,7 @@ def sigmoid(x):
 
 @dispatch(object)
 def exp(A):
-    return A.exp()
+    return np.exp(A)
 
 
 @dispatch(float)
@@ -91,7 +91,7 @@ def sign(A):
 
 @dispatch(object)
 def log1p(A):
-    return A.log1p()
+    return np.log1p(A)
 
 
 @dispatch(np.ndarray)
@@ -147,6 +147,11 @@ def add_intercept(X):
     # Is this OK / correct?
     X_i = da.concatenate([X, o], axis=1).rechunk((j, (k[0] + 1,)))
     return X_i
+
+
+@dispatch(object)
+def add_intercept(X):
+    return np.concatenate([X, np.ones_like(X, shape=(X.shape[0], 1))], axis=1)
 
 
 def make_y(X, beta=np.array([1.5, -3]), chunks=2):
@@ -205,3 +210,9 @@ def get_distributed_client():
         return get_client()
     except ValueError:
         return None
+
+
+def safe_zeros_like(X, shape):
+    if isinstance(X, da.Array):
+        return np.zeros_like(X._meta, shape=shape)
+    return np.zeros_like(X, shape=shape)
