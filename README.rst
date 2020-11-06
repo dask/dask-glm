@@ -21,7 +21,7 @@ Run tests::
 
 
 
-.. |Build Status| image:: https://github.com/thomasjpfan/dask-glm/workflows/CI/badge.svg
+.. |Build Status| image:: https://github.com/dask/dask-glm/workflows/CI/badge.svg
    :target: https://github.com/dask/dask-glm/actions?query=workflow%3ACI
 
 .. |Documentation Status| image:: https://readthedocs.org/projects/dask-glm/badge/?version=latest
