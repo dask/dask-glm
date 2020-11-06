@@ -30,6 +30,10 @@ jobs:
           multipledispatch cloudpickle numba mock scikit-learn jupyter sparse
           pip install git+https://github.com/dask/dask
 
+      - name: Show installed packages
+        shell: bash -l {0}
+        run: conda list
+
       - name: Install dask_glm
         shell: bash -l {0}
         run: pip install --no-deps -e .
