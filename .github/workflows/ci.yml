@@ -26,9 +26,8 @@ jobs:
       - name: Install dependencies
         shell: bash -l {0}
         run: |
-          conda install -c conda-forge numpy flake8 pytest scipy \
+          conda install -c conda-forge numpy flake8 pytest scipy dask \
           multipledispatch cloudpickle numba mock scikit-learn jupyter sparse
-          pip install git+https://github.com/dask/dask
 
       - name: Show installed packages
         shell: bash -l {0}
