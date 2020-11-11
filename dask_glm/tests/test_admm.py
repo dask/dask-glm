@@ -46,11 +46,18 @@ def test_local_update(N, beta, family):
 @pytest.mark.parametrize('N', [1000, 10000])
 @pytest.mark.parametrize('nchunks', [5, 10])
 @pytest.mark.parametrize('p', [1, 5, 10])
-def test_admm_with_large_lamduh(N, p, nchunks):
+@pytest.mark.parametrize('is_cupy', [True, False])
+def test_admm_with_large_lamduh(N, p, nchunks, is_cupy):
     X = da.random.random((N, p), chunks=(N // nchunks, p))
     beta = np.random.random(p)
     y = make_y(X, beta=np.array(beta), chunks=(N // nchunks,))
 
+    if is_cupy:
+        cupy = pytest.importorskip('cupy')
+        X = X.map_blocks(lambda x: cupy.asarray(x),
+                         dtype=X.dtype, meta=cupy.asarray(X._meta))
+        y = y.map_blocks(lambda x: cupy.asarray(x),
+                         dtype=y.dtype, meta=cupy.asarray(y._meta))
     X, y = persist(X, y)
     z = admm(X, y, regularizer=L1(), lamduh=1e5, rho=20, max_iter=500)
 
