@@ -41,7 +41,7 @@ def sigmoid(x):
 
 @dispatch(object)
 def exp(A):
-    return A.exp()
+    return np.exp(A)
 
 
 @dispatch(float)
@@ -91,7 +91,7 @@ def sign(A):
 
 @dispatch(object)
 def log1p(A):
-    return A.log1p()
+    return np.log1p(A)
 
 
 @dispatch(np.ndarray)
