@@ -365,7 +365,11 @@ def lbfgs(X, y, regularizer=None, lamduh=1.0, max_iter=100, tol=1e-4,
 
 
 def _maybe_to_cupy(beta, X):
-    if "cupy" in str(type(X)) or 'cupy' in str(type(X._meta)):
+    """ convert beta, a numpy array, to a cupy array
+        if X is a cupy array or dask cupy array
+    """
+    if "cupy" in str(type(X)) or \
+            hasattr(X, '_meta') and 'cupy' in str(type(X._meta)):
         import cupy
         return cupy.asarray(beta)
     return beta
