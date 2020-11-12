@@ -205,3 +205,14 @@ def get_distributed_client():
         return get_client()
     except ValueError:
         return None
+
+
+def maybe_to_cupy(beta, X):
+    """ convert beta, a numpy array, to a cupy array
+        if X is a cupy array or dask cupy array
+    """
+    if "cupy" in str(type(X)) or \
+            hasattr(X, '_meta') and 'cupy' in str(type(X._meta)):
+        import cupy
+        return cupy.asarray(beta)
+    return beta
