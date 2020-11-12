@@ -44,9 +44,20 @@ def test_pr_init(solver):
 
 
 @pytest.mark.parametrize('fit_intercept', [True, False])
-@pytest.mark.parametrize('is_sparse', [True, False])
-def test_fit(fit_intercept, is_sparse):
+@pytest.mark.parametrize('is_sparse,is_cupy', [
+                         (True, False),
+                         (False, False),
+                         (False, True)])
+def test_fit(fit_intercept, is_sparse, is_cupy):
     X, y = make_classification(n_samples=100, n_features=5, chunksize=10, is_sparse=is_sparse)
+
+    if is_cupy and not is_sparse:
+        cupy = pytest.importorskip('cupy')
+        X = X.map_blocks(lambda x: cupy.asarray(x),
+                         dtype=X.dtype, meta=cupy.asarray(X._meta))
+        y = y.map_blocks(lambda x: cupy.asarray(x),
+                         dtype=y.dtype, meta=cupy.asarray(y._meta))
+
     lr = LogisticRegression(fit_intercept=fit_intercept)
     lr.fit(X, y)
     lr.predict(X)
@@ -54,9 +65,18 @@ def test_fit(fit_intercept, is_sparse):
 
 
 @pytest.mark.parametrize('fit_intercept', [True, False])
-@pytest.mark.parametrize('is_sparse', [True, False])
-def test_lm(fit_intercept, is_sparse):
+@pytest.mark.parametrize('is_sparse,is_cupy', [
+                         (True, False),
+                         (False, False),
+                         (False, True)])
+def test_lm(fit_intercept, is_sparse, is_cupy):
     X, y = make_regression(n_samples=100, n_features=5, chunksize=10, is_sparse=is_sparse)
+    if is_cupy and not is_sparse:
+        cupy = pytest.importorskip('cupy')
+        X = X.map_blocks(lambda x: cupy.asarray(x),
+                         dtype=X.dtype, meta=cupy.asarray(X._meta))
+        y = y.map_blocks(lambda x: cupy.asarray(x),
+                         dtype=y.dtype, meta=cupy.asarray(y._meta))
     lr = LinearRegression(fit_intercept=fit_intercept)
     lr.fit(X, y)
     lr.predict(X)
@@ -65,10 +85,19 @@ def test_lm(fit_intercept, is_sparse):
 
 
 @pytest.mark.parametrize('fit_intercept', [True, False])
-@pytest.mark.parametrize('is_sparse', [True, False])
-def test_big(fit_intercept, is_sparse):
+@pytest.mark.parametrize('is_sparse,is_cupy', [
+                         (True, False),
+                         (False, False),
+                         (False, True)])
+def test_big(fit_intercept, is_sparse, is_cupy):
     with dask.config.set(scheduler='synchronous'):
         X, y = make_classification(is_sparse=is_sparse)
+        if is_cupy and not is_sparse:
+            cupy = pytest.importorskip('cupy')
+            X = X.map_blocks(lambda x: cupy.asarray(x),
+                             dtype=X.dtype, meta=cupy.asarray(X._meta))
+            y = y.map_blocks(lambda x: cupy.asarray(x),
+                             dtype=y.dtype, meta=cupy.asarray(y._meta))
         lr = LogisticRegression(fit_intercept=fit_intercept)
         lr.fit(X, y)
         lr.predict(X)
@@ -78,10 +107,19 @@ def test_big(fit_intercept, is_sparse):
 
 
 @pytest.mark.parametrize('fit_intercept', [True, False])
-@pytest.mark.parametrize('is_sparse', [True, False])
-def test_poisson_fit(fit_intercept, is_sparse):
+@pytest.mark.parametrize('is_sparse,is_cupy', [
+                         (True, False),
+                         (False, False),
+                         (False, True)])
+def test_poisson_fit(fit_intercept, is_sparse, is_cupy):
     with dask.config.set(scheduler='synchronous'):
         X, y = make_poisson(is_sparse=is_sparse)
+        if is_cupy and not is_sparse:
+            cupy = pytest.importorskip('cupy')
+            X = X.map_blocks(lambda x: cupy.asarray(x),
+                             dtype=X.dtype, meta=cupy.asarray(X._meta))
+            y = y.map_blocks(lambda x: cupy.asarray(x),
+                             dtype=y.dtype, meta=cupy.asarray(y._meta))
         pr = PoissonRegression(fit_intercept=fit_intercept)
         pr.fit(X, y)
         pr.predict(X)
