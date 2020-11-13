@@ -44,9 +44,14 @@ def test_pr_init(solver):
 
 
 @pytest.mark.parametrize('fit_intercept', [True, False])
-@pytest.mark.parametrize('is_sparse', [True, False])
-def test_fit(fit_intercept, is_sparse):
+@pytest.mark.parametrize('is_sparse,is_numpy', [
+                         (True, False),
+                         (False, False),
+                         (False, True)])
+def test_fit(fit_intercept, is_sparse, is_numpy):
     X, y = make_classification(n_samples=100, n_features=5, chunksize=10, is_sparse=is_sparse)
+    if is_numpy:
+        X, y = dask.compute(X, y)
     lr = LogisticRegression(fit_intercept=fit_intercept)
     lr.fit(X, y)
     lr.predict(X)
