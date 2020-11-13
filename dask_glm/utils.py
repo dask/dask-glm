@@ -216,3 +216,14 @@ def maybe_to_cupy(beta, X):
         import cupy
         return cupy.asarray(beta)
     return beta
+
+
+def to_dask_cupy_array(X, cupy):
+    """ convert a dask numpy array to a dask cupy array
+    """
+    return X.map_blocks(lambda x: cupy.asarray(x),
+                        dtype=X.dtype, meta=cupy.asarray(X._meta))
+
+
+def to_dask_cupy_array_xy(X, y, cupy):
+    return dask_array_to_cupy(X, cupy), dask_array_to_cupy(y, cupy)

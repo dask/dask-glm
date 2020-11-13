@@ -10,7 +10,8 @@ from dask_glm.algorithms import (newton, lbfgs, proximal_grad,
                                  gradient_descent, admm)
 from dask_glm.families import Logistic, Normal, Poisson
 from dask_glm.regularizers import Regularizer
-from dask_glm.utils import sigmoid, make_y, maybe_to_cupy
+from dask_glm.utils import (sigmoid, make_y, maybe_to_cupy,
+                            to_dask_cupy_array_xy)
 
 
 def add_l1(f, lam):
@@ -49,12 +50,11 @@ def make_intercept_data(N, p, seed=20009):
 @pytest.mark.parametrize('is_cupy', [True, False])
 def test_methods(N, p, seed, opt, is_cupy):
     X, y = make_intercept_data(N, p, seed=seed)
+
     if is_cupy:
         cupy = pytest.importorskip('cupy')
-        X = X.map_blocks(lambda x: cupy.asarray(x),
-                         dtype=X.dtype, meta=cupy.asarray(X._meta))
-        y = y.map_blocks(lambda x: cupy.asarray(x),
-                         dtype=y.dtype, meta=cupy.asarray(y._meta))
+        X, y = to_dask_cupy_array_xy(X, y, cupy)
+
     coefs = opt(X, y)
     p = sigmoid(X.dot(coefs).compute())
 
@@ -80,10 +80,7 @@ def test_basic_unreg_descent(func, kwargs, N, nchunks, family, is_cupy):
 
     if is_cupy:
         cupy = pytest.importorskip('cupy')
-        X = X.map_blocks(lambda x: cupy.asarray(x),
-                         dtype=X.dtype, meta=cupy.asarray(X._meta))
-        y = y.map_blocks(lambda x: cupy.asarray(x),
-                         dtype=y.dtype, meta=cupy.asarray(y._meta))
+        X, y = to_dask_cupy_array_xy(X, y, cupy)
 
     X, y = persist(X, y)
 
@@ -112,12 +109,10 @@ def test_basic_reg_descent(func, kwargs, N, nchunks, family, lam, reg, is_cupy):
     M = len(beta)
     X = da.random.random((N, M), chunks=(N // nchunks, M))
     y = make_y(X, beta=np.array(beta), chunks=(N // nchunks,))
+
     if is_cupy:
         cupy = pytest.importorskip('cupy')
-        X = X.map_blocks(lambda x: cupy.asarray(x),
-                         dtype=X.dtype, meta=cupy.asarray(X._meta))
-        y = y.map_blocks(lambda x: cupy.asarray(x),
-                         dtype=y.dtype, meta=cupy.asarray(y._meta))
+        X, y = to_dask_cupy_array_xy(X, y, cupy)
 
     X, y = persist(X, y)
 
@@ -149,10 +144,7 @@ def test_determinism(func, kwargs, scheduler, is_cupy):
     X, y = make_intercept_data(1000, 10)
     if is_cupy:
         cupy = pytest.importorskip('cupy')
-        X = X.map_blocks(lambda x: cupy.asarray(x),
-                         dtype=X.dtype, meta=cupy.asarray(X._meta))
-        y = y.map_blocks(lambda x: cupy.asarray(x),
-                         dtype=y.dtype, meta=cupy.asarray(y._meta))
+        X, y = to_dask_cupy_array_xy(X, y, cupy)
 
     with dask.config.set(scheduler=scheduler):
         a = func(X, y, **kwargs)
