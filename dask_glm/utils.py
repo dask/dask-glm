@@ -226,4 +226,4 @@ def to_dask_cupy_array(X, cupy):
 
 
 def to_dask_cupy_array_xy(X, y, cupy):
-    return dask_array_to_cupy(X, cupy), dask_array_to_cupy(y, cupy)
+    return to_dask_cupy_array(X, cupy), to_dask_cupy_array(y, cupy)
