@@ -41,7 +41,7 @@ def sigmoid(x):
 
 @dispatch(object)
 def exp(A):
-    return A.exp()
+    return np.exp(A)
 
 
 @dispatch(float)
@@ -91,7 +91,7 @@ def sign(A):
 
 @dispatch(object)
 def log1p(A):
-    return A.log1p()
+    return np.log1p(A)
 
 
 @dispatch(np.ndarray)
@@ -205,3 +205,25 @@ def get_distributed_client():
         return get_client()
     except ValueError:
         return None
+
+
+def maybe_to_cupy(beta, X):
+    """ convert beta, a numpy array, to a cupy array
+        if X is a cupy array or dask cupy array
+    """
+    if "cupy" in str(type(X)) or \
+            hasattr(X, '_meta') and 'cupy' in str(type(X._meta)):
+        import cupy
+        return cupy.asarray(beta)
+    return beta
+
+
+def to_dask_cupy_array(X, cupy):
+    """ convert a dask numpy array to a dask cupy array
+    """
+    return X.map_blocks(lambda x: cupy.asarray(x),
+                        dtype=X.dtype, meta=cupy.asarray(X._meta))
+
+
+def to_dask_cupy_array_xy(X, y, cupy):
+    return to_dask_cupy_array(X, cupy), to_dask_cupy_array(y, cupy)

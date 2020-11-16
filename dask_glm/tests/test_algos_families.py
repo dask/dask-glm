@@ -10,7 +10,8 @@ from dask_glm.algorithms import (newton, lbfgs, proximal_grad,
                                  gradient_descent, admm)
 from dask_glm.families import Logistic, Normal, Poisson
 from dask_glm.regularizers import Regularizer
-from dask_glm.utils import sigmoid, make_y
+from dask_glm.utils import (sigmoid, make_y, maybe_to_cupy,
+                            to_dask_cupy_array_xy)
 
 
 def add_l1(f, lam):
@@ -46,8 +47,14 @@ def make_intercept_data(N, p, seed=20009):
                          [(100, 2, 20009),
                           (250, 12, 90210),
                           (95, 6, 70605)])
-def test_methods(N, p, seed, opt):
+@pytest.mark.parametrize('is_cupy', [True, False])
+def test_methods(N, p, seed, opt, is_cupy):
     X, y = make_intercept_data(N, p, seed=seed)
+
+    if is_cupy:
+        cupy = pytest.importorskip('cupy')
+        X, y = to_dask_cupy_array_xy(X, y, cupy)
+
     coefs = opt(X, y)
     p = sigmoid(X.dot(coefs).compute())
 
@@ -64,16 +71,22 @@ def test_methods(N, p, seed, opt):
 @pytest.mark.parametrize('N', [1000])
 @pytest.mark.parametrize('nchunks', [1, 10])
 @pytest.mark.parametrize('family', [Logistic, Normal, Poisson])
-def test_basic_unreg_descent(func, kwargs, N, nchunks, family):
+@pytest.mark.parametrize('is_cupy', [True, False])
+def test_basic_unreg_descent(func, kwargs, N, nchunks, family, is_cupy):
     beta = np.random.normal(size=2)
     M = len(beta)
     X = da.random.random((N, M), chunks=(N // nchunks, M))
     y = make_y(X, beta=np.array(beta), chunks=(N // nchunks,))
 
+    if is_cupy:
+        cupy = pytest.importorskip('cupy')
+        X, y = to_dask_cupy_array_xy(X, y, cupy)
+
     X, y = persist(X, y)
 
     result = func(X, y, family=family, **kwargs)
     test_vec = np.random.normal(size=2)
+    test_vec = maybe_to_cupy(test_vec, X)
 
     opt = family.pointwise_loss(result, X, y).compute()
     test_val = family.pointwise_loss(test_vec, X, y).compute()
@@ -90,16 +103,22 @@ def test_basic_unreg_descent(func, kwargs, N, nchunks, family):
 @pytest.mark.parametrize('family', [Logistic, Normal, Poisson])
 @pytest.mark.parametrize('lam', [0.01, 1.2, 4.05])
 @pytest.mark.parametrize('reg', [r() for r in Regularizer.__subclasses__()])
-def test_basic_reg_descent(func, kwargs, N, nchunks, family, lam, reg):
+@pytest.mark.parametrize('is_cupy', [True, False])
+def test_basic_reg_descent(func, kwargs, N, nchunks, family, lam, reg, is_cupy):
     beta = np.random.normal(size=2)
     M = len(beta)
     X = da.random.random((N, M), chunks=(N // nchunks, M))
     y = make_y(X, beta=np.array(beta), chunks=(N // nchunks,))
 
+    if is_cupy:
+        cupy = pytest.importorskip('cupy')
+        X, y = to_dask_cupy_array_xy(X, y, cupy)
+
     X, y = persist(X, y)
 
     result = func(X, y, family=family, lamduh=lam, regularizer=reg, **kwargs)
     test_vec = np.random.normal(size=2)
+    test_vec = maybe_to_cupy(test_vec, X)
 
     f = reg.add_reg_f(family.pointwise_loss, lam)
 
@@ -120,8 +139,12 @@ def test_basic_reg_descent(func, kwargs, N, nchunks, family, lam, reg):
     'threading',
     'multiprocessing'
 ])
-def test_determinism(func, kwargs, scheduler):
+@pytest.mark.parametrize('is_cupy', [True, False])
+def test_determinism(func, kwargs, scheduler, is_cupy):
     X, y = make_intercept_data(1000, 10)
+    if is_cupy:
+        cupy = pytest.importorskip('cupy')
+        X, y = to_dask_cupy_array_xy(X, y, cupy)
 
     with dask.config.set(scheduler=scheduler):
         a = func(X, y, **kwargs)

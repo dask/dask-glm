@@ -9,9 +9,9 @@ import functools
 import numpy as np
 import dask.array as da
 from scipy.optimize import fmin_l_bfgs_b
+from dask.array.utils import normalize_to_array
 
-
-from dask_glm.utils import dot, normalize, scatter_array, get_distributed_client
+from dask_glm.utils import dot, normalize, scatter_array, get_distributed_client, maybe_to_cupy
 from dask_glm.families import Logistic
 from dask_glm.regularizers import Regularizer
 
@@ -225,14 +225,22 @@ def admm(X, y, regularizer='l1', lamduh=0.1, rho=1, over_relax=1,
     def create_local_gradient(func):
         @functools.wraps(func)
         def wrapped(beta, X, y, z, u, rho):
-            return func(beta, X, y) + rho * (beta - z + u)
+            beta = maybe_to_cupy(beta, X)
+            z = maybe_to_cupy(z, X)
+            u = maybe_to_cupy(u, X)
+            res = func(beta, X, y) + rho * (beta - z + u)
+            return normalize_to_array(res)
         return wrapped
 
     def create_local_f(func):
         @functools.wraps(func)
         def wrapped(beta, X, y, z, u, rho):
-            return func(beta, X, y) + (rho / 2) * np.dot(beta - z + u,
-                                                         beta - z + u)
+            beta = maybe_to_cupy(beta, X)
+            z = maybe_to_cupy(z, X)
+            u = maybe_to_cupy(u, X)
+            res = func(beta, X, y) + (rho / 2) * np.dot(beta - z + u,
+                                                        beta - z + u)
+            return normalize_to_array(res)
         return wrapped
 
     f = create_local_f(pointwise_loss)
@@ -286,7 +294,7 @@ def admm(X, y, regularizer='l1', lamduh=0.1, rho=1, over_relax=1,
         if primal_res < eps_pri and dual_res < eps_dual:
             break
 
-    return z
+    return maybe_to_cupy(z, X)
 
 
 def local_update(X, y, beta, z, u, rho, f, fprime, solver=fmin_l_bfgs_b):
@@ -339,19 +347,20 @@ def lbfgs(X, y, regularizer=None, lamduh=1.0, max_iter=100, tol=1e-4,
     beta0 = np.zeros(p)
 
     def compute_loss_grad(beta, X, y):
+        beta = maybe_to_cupy(beta, X)
         scatter_beta = scatter_array(
             beta, dask_distributed_client) if dask_distributed_client else beta
         loss_fn = pointwise_loss(scatter_beta, X, y)
         gradient_fn = pointwise_gradient(scatter_beta, X, y)
         loss, gradient = compute(loss_fn, gradient_fn)
-        return loss, gradient.copy()
+        return normalize_to_array(loss), normalize_to_array(gradient.copy())
 
     with dask.config.set(fuse_ave_width=0):  # optimizations slows this down
         beta, loss, info = fmin_l_bfgs_b(
             compute_loss_grad, beta0, fprime=None,
             args=(X, y),
             iprint=(verbose > 0) - 1, pgtol=tol, maxiter=max_iter)
-
+    beta = maybe_to_cupy(beta, X)
     return beta
 
 

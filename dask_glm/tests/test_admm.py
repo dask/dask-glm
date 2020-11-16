@@ -7,7 +7,7 @@ import numpy as np
 from dask_glm.algorithms import admm, local_update
 from dask_glm.families import Logistic, Normal
 from dask_glm.regularizers import L1
-from dask_glm.utils import make_y
+from dask_glm.utils import make_y, to_dask_cupy_array_xy
 
 
 @pytest.mark.parametrize('N', [1000, 10000])
@@ -46,10 +46,15 @@ def test_local_update(N, beta, family):
 @pytest.mark.parametrize('N', [1000, 10000])
 @pytest.mark.parametrize('nchunks', [5, 10])
 @pytest.mark.parametrize('p', [1, 5, 10])
-def test_admm_with_large_lamduh(N, p, nchunks):
+@pytest.mark.parametrize('is_cupy', [True, False])
+def test_admm_with_large_lamduh(N, p, nchunks, is_cupy):
     X = da.random.random((N, p), chunks=(N // nchunks, p))
     beta = np.random.random(p)
     y = make_y(X, beta=np.array(beta), chunks=(N // nchunks,))
+
+    if is_cupy:
+        cupy = pytest.importorskip('cupy')
+        X, y = to_dask_cupy_array_xy(X, y, cupy)
 
     X, y = persist(X, y)
     z = admm(X, y, regularizer=L1(), lamduh=1e5, rho=20, max_iter=500)
