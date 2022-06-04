@@ -8,4 +8,4 @@ jupyter
 notebook
 nbsphinx
 sphinx
-sphinx_rtd_theme
+dask-sphinx-theme>=3.0.0
