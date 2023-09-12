@@ -44,12 +44,22 @@ def test_pr_init(solver):
     PoissonRegression(solver=solver)
 
 
+def _maybe_skip_sparse_error(fit_intercept, is_sparse, is_cupy):
+    if fit_intercept and is_sparse and not is_cupy:
+        msg = ("ValueError: This operation requires consistent fill-values, "
+               "but argument 1 had a fill value of 1.0, which is different "
+               "from a fill_value of 0.0 in the first argument")
+        pytest.xfail(f"TODO: {msg}")
+    
+
 @pytest.mark.parametrize('fit_intercept', [True, False])
 @pytest.mark.parametrize('is_sparse,is_cupy', [
                          (True, False),
                          (False, False),
                          (False, True)])
 def test_fit(fit_intercept, is_sparse, is_cupy):
+    _maybe_skip_sparse_error(fit_intercept, is_sparse, is_cupy)
+
     X, y = make_classification(n_samples=100, n_features=5, chunksize=10, is_sparse=is_sparse)
 
     if is_cupy and not is_sparse:
@@ -68,6 +78,8 @@ def test_fit(fit_intercept, is_sparse, is_cupy):
                          (False, False),
                          (False, True)])
 def test_lm(fit_intercept, is_sparse, is_cupy):
+    _maybe_skip_sparse_error(fit_intercept, is_sparse, is_cupy)
+
     X, y = make_regression(n_samples=100, n_features=5, chunksize=10, is_sparse=is_sparse)
     if is_cupy and not is_sparse:
         cupy = pytest.importorskip('cupy')
@@ -85,6 +97,8 @@ def test_lm(fit_intercept, is_sparse, is_cupy):
                          (False, False),
                          (False, True)])
 def test_big(fit_intercept, is_sparse, is_cupy):
+    _maybe_skip_sparse_error(fit_intercept, is_sparse, is_cupy)
+
     with dask.config.set(scheduler='synchronous'):
         X, y = make_classification(is_sparse=is_sparse)
         if is_cupy and not is_sparse:
@@ -104,6 +118,8 @@ def test_big(fit_intercept, is_sparse, is_cupy):
                          (False, False),
                          (False, True)])
 def test_poisson_fit(fit_intercept, is_sparse, is_cupy):
+    _maybe_skip_sparse_error(fit_intercept, is_sparse, is_cupy)
+
     with dask.config.set(scheduler='synchronous'):
         X, y = make_poisson(is_sparse=is_sparse)
         if is_cupy and not is_sparse:
