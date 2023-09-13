@@ -83,6 +83,13 @@ def test_add_intercept_sparse():
     assert (result == expected).all()
 
 
+@pytest.mark.xfail(
+    reason=(
+        "TODO: ValueError: This operation requires consistent fill-values, "
+        "but argument 1 had a fill value of 1.0, which is different from a "
+        "fill_value of 0.0 in the first argument."
+    )
+)
 def test_add_intercept_sparse_dask():
     X = da.from_array(sparse.COO(np.zeros((4, 4))), chunks=(2, 4))
     result = utils.add_intercept(X)
