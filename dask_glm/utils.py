@@ -2,13 +2,13 @@ from __future__ import absolute_import, division, print_function
 
 import inspect
 import sys
+from functools import wraps
 
-from dask.distributed import get_client
 import dask.array as da
 import numpy as np
-from functools import wraps
-from multipledispatch import dispatch
 import sparse
+from dask.distributed import get_client
+from multipledispatch import dispatch
 
 
 def normalize(algo):

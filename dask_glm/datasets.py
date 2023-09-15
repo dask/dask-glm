@@ -1,6 +1,7 @@
+import dask.array as da
 import numpy as np
 import sparse
-import dask.array as da
+
 from dask_glm.utils import exp
 
 

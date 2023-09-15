@@ -3,23 +3,24 @@
 
 from __future__ import absolute_import, division, print_function
 
-import dask
-from dask import delayed, persist, compute
 import functools
-import numpy as np
-import dask.array as da
-from scipy.optimize import fmin_l_bfgs_b
-from dask.array.utils import normalize_to_array
 
-from dask_glm.utils import (
-    dot,
-    normalize,
-    scatter_array,
-    get_distributed_client,
-    maybe_to_cupy,
-)
+import dask
+import dask.array as da
+import numpy as np
+from dask import compute, delayed, persist
+from dask.array.utils import normalize_to_array
+from scipy.optimize import fmin_l_bfgs_b
+
 from dask_glm.families import Logistic
 from dask_glm.regularizers import Regularizer
+from dask_glm.utils import (
+    dot,
+    get_distributed_client,
+    maybe_to_cupy,
+    normalize,
+    scatter_array,
+)
 
 
 def compute_stepsize_dask(

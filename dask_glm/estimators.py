@@ -3,17 +3,16 @@ Models following scikit-learn's estimator API.
 """
 from sklearn.base import BaseEstimator
 
-from . import algorithms
-from . import families
+from . import algorithms, families
 from .utils import (
-    sigmoid,
-    dot,
-    add_intercept,
-    mean_squared_error,
     accuracy_score,
+    add_intercept,
+    dot,
     exp,
-    poisson_deviance,
     is_dask_array_sparse,
+    mean_squared_error,
+    poisson_deviance,
+    sigmoid,
 )
 
 

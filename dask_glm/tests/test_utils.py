@@ -1,10 +1,10 @@
-import pytest
-import numpy as np
 import dask.array as da
+import numpy as np
+import pytest
 import sparse
+from dask.array.utils import assert_eq
 
 from dask_glm import utils
-from dask.array.utils import assert_eq
 
 
 def test_normalize_normalizes():

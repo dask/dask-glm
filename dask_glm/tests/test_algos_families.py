@@ -1,15 +1,14 @@
-import pytest
-
 import dask
-import dask.multiprocessing
-from dask import persist
-import numpy as np
 import dask.array as da
+import dask.multiprocessing
+import numpy as np
+import pytest
+from dask import persist
 
-from dask_glm.algorithms import newton, lbfgs, proximal_grad, gradient_descent, admm
+from dask_glm.algorithms import admm, gradient_descent, lbfgs, newton, proximal_grad
 from dask_glm.families import Logistic, Normal, Poisson
 from dask_glm.regularizers import Regularizer
-from dask_glm.utils import sigmoid, make_y, maybe_to_cupy, to_dask_cupy_array_xy
+from dask_glm.utils import make_y, maybe_to_cupy, sigmoid, to_dask_cupy_array_xy
 
 
 def add_l1(f, lam):
@@ -155,7 +154,7 @@ def test_determinism(func, kwargs, scheduler, is_cupy):
 
 try:
     from distributed import Client
-    from distributed.utils_test import cluster, loop_in_thread, cleanup  # noqa: F401
+    from distributed.utils_test import cleanup, cluster, loop_in_thread  # noqa: F401
 except ImportError:
     pass
 else:

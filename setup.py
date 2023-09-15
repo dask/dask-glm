@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
 from os.path import exists
-from setuptools import setup
 
+from setuptools import setup
 
 setup(
     name="dask-glm",

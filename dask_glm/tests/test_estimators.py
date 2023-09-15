@@ -1,8 +1,8 @@
-import pytest
 import dask
+import pytest
 
-from dask_glm.estimators import LogisticRegression, LinearRegression, PoissonRegression
-from dask_glm.datasets import make_classification, make_regression, make_poisson
+from dask_glm.datasets import make_classification, make_poisson, make_regression
+from dask_glm.estimators import LinearRegression, LogisticRegression, PoissonRegression
 from dask_glm.regularizers import Regularizer
 from dask_glm.utils import to_dask_cupy_array_xy
 

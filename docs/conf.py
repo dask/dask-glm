@@ -18,6 +18,7 @@
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
 import os
+
 from pkg_resources import get_distribution
 
 # import sys

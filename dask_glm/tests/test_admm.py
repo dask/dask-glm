@@ -1,8 +1,7 @@
-import pytest
-
-from dask import persist
 import dask.array as da
 import numpy as np
+import pytest
+from dask import persist
 
 from dask_glm.algorithms import admm, local_update
 from dask_glm.families import Logistic, Normal
