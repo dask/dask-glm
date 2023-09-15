@@ -155,7 +155,7 @@ def test_determinism(func, kwargs, scheduler, is_cupy):
 
 try:
     from distributed import Client
-    from distributed.utils_test import cluster, loop_in_thread, cleanup  # flake8: noqa
+    from distributed.utils_test import cluster, loop_in_thread, cleanup  # noqa: F401
 except ImportError:
     pass
 else:
@@ -169,9 +169,9 @@ else:
             (gradient_descent, {"max_iter": 2}),
         ],
     )
-    def test_determinism_distributed(func, kwargs, loop_in_thread):
+    def test_determinism_distributed(func, kwargs, loop_in_thread):  # noqa: F811
         with cluster() as (s, [a, b]):
-            with Client(s["address"], loop=loop_in_thread) as c:
+            with Client(s["address"], loop=loop_in_thread) as _:
                 X, y = make_intercept_data(1000, 10)
 
                 a = func(X, y, **kwargs)
@@ -179,9 +179,9 @@ else:
 
                 assert (a == b).all()
 
-    def broadcast_lbfgs_weight():
+    def test_broadcast_lbfgs_weight(loop_in_thread):  # noqa: F811
         with cluster() as (s, [a, b]):
-            with Client(s["address"], loop=loop) as c:
+            with Client(s["address"], loop=loop_in_thread) as c:
                 X, y = make_intercept_data(1000, 10)
                 coefs = lbfgs(X, y, dask_distributed_client=c)
                 p = sigmoid(X.dot(coefs).compute())

@@ -48,7 +48,7 @@ def test_normalize_raises_if_multiple_constants():
     X = da.from_array(np.array([[1, 2, 3], [1, 2, 3]]), chunks=(2, 3))
     y = da.from_array(np.array([0, 1, 0]), chunks=(3,))
     with pytest.raises(ValueError):
-        res = do_nothing(X, y)
+        do_nothing(X, y)
 
 
 def test_add_intercept():

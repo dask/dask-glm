@@ -452,7 +452,6 @@ def proximal_grad(
     n, p = X.shape
     firstBacktrackMult = 0.1
     nextBacktrackMult = 0.5
-    armijoMult = 0.1
     stepGrowth = 1.25
     stepSize = 1.0
     recalcRate = 10
@@ -478,7 +477,6 @@ def proximal_grad(
             beta = regularizer.proximal_operator(
                 -stepSize * gradient + obeta, stepSize * lamduh
             )
-            step = -beta + obeta
             Xbeta = X.dot(beta)
 
             Xbeta, beta = persist(Xbeta, beta)
