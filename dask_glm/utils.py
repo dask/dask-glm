@@ -14,16 +14,20 @@ import sparse
 def normalize(algo):
     @wraps(algo)
     def normalize_inputs(X, y, *args, **kwargs):
-        normalize = kwargs.pop('normalize', True)
+        normalize = kwargs.pop("normalize", True)
         if normalize:
             mean, std = da.compute(X.mean(axis=0), X.std(axis=0))
             mean, std = mean.copy(), std.copy()  # in case they are read-only
             intercept_idx = np.where(std == 0)
             if len(intercept_idx[0]) > 1:
-                raise ValueError('Multiple constant columns detected!')
+                raise ValueError("Multiple constant columns detected!")
             mean[intercept_idx] = 0
             std[intercept_idx] = 1
-            mean = mean if len(intercept_idx[0]) else np.zeros_like(X._meta, shape=mean.shape)
+            mean = (
+                mean
+                if len(intercept_idx[0])
+                else np.zeros_like(X._meta, shape=mean.shape)
+            )
             Xn = (X - mean) / std
             out = algo(Xn, y, *args, **kwargs).copy()
             i_adj = np.sum(out * mean / std)
@@ -31,6 +35,7 @@ def normalize(algo):
             return out / std
         else:
             return algo(X, y, *args, **kwargs)
+
     return normalize_inputs
 
 
@@ -137,8 +142,9 @@ def add_intercept(X):
 @dispatch(da.Array)
 def add_intercept(X):
     if np.isnan(np.sum(X.shape)):
-        raise NotImplementedError("Can not add intercept to array with "
-                                  "unknown chunk shape")
+        raise NotImplementedError(
+            "Can not add intercept to array with " "unknown chunk shape"
+        )
     j, k = X.chunks
     o = da.ones_like(X, shape=(X.shape[0], 1), chunks=(j, 1))
     if is_dask_array_sparse(X):
@@ -173,13 +179,14 @@ try:
 except ImportError:
     pass
 else:
+
     @dispatch(sparse.COO)
     def exp(x):
         return np.exp(x.todense())
 
 
 def package_of(obj):
-    """ Return package containing object's definition
+    """Return package containing object's definition
 
     Or return None if not found
     """
@@ -187,7 +194,7 @@ def package_of(obj):
     mod = inspect.getmodule(obj)
     if not mod:
         return
-    base, _sep, _stem = mod.__name__.partition('.')
+    base, _sep, _stem = mod.__name__.partition(".")
     return sys.modules[base]
 
 
@@ -196,8 +203,9 @@ def scatter_array(arr, dask_client):
     Return the equivalent dask array
     """
     future_arr = dask_client.scatter(arr)
-    return da.from_delayed(future_arr, shape=arr.shape, dtype=arr.dtype,
-                           meta=np.zeros_like(arr, shape=()))
+    return da.from_delayed(
+        future_arr, shape=arr.shape, dtype=arr.dtype, meta=np.zeros_like(arr, shape=())
+    )
 
 
 def get_distributed_client():
@@ -208,21 +216,21 @@ def get_distributed_client():
 
 
 def maybe_to_cupy(beta, X):
-    """ convert beta, a numpy array, to a cupy array
-        if X is a cupy array or dask cupy array
+    """convert beta, a numpy array, to a cupy array
+    if X is a cupy array or dask cupy array
     """
-    if "cupy" in str(type(X)) or \
-            hasattr(X, '_meta') and 'cupy' in str(type(X._meta)):
+    if "cupy" in str(type(X)) or hasattr(X, "_meta") and "cupy" in str(type(X._meta)):
         import cupy
+
         return cupy.asarray(beta)
     return beta
 
 
 def to_dask_cupy_array(X, cupy):
-    """ convert a dask numpy array to a dask cupy array
-    """
-    return X.map_blocks(lambda x: cupy.asarray(x),
-                        dtype=X.dtype, meta=cupy.asarray(X._meta))
+    """convert a dask numpy array to a dask cupy array"""
+    return X.map_blocks(
+        lambda x: cupy.asarray(x), dtype=X.dtype, meta=cupy.asarray(X._meta)
+    )
 
 
 def to_dask_cupy_array_xy(X, y, cupy):

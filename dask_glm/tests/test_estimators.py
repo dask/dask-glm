@@ -46,24 +46,27 @@ def test_pr_init(solver):
 
 def _maybe_skip_sparse_error(fit_intercept, is_sparse, is_cupy):
     if fit_intercept and is_sparse and not is_cupy:
-        msg = ("ValueError: This operation requires consistent fill-values, "
-               "but argument 1 had a fill value of 1.0, which is different "
-               "from a fill_value of 0.0 in the first argument")
+        msg = (
+            "ValueError: This operation requires consistent fill-values, "
+            "but argument 1 had a fill value of 1.0, which is different "
+            "from a fill_value of 0.0 in the first argument"
+        )
         pytest.xfail(f"TODO: {msg}")
-    
 
-@pytest.mark.parametrize('fit_intercept', [True, False])
-@pytest.mark.parametrize('is_sparse,is_cupy', [
-                         (True, False),
-                         (False, False),
-                         (False, True)])
+
+@pytest.mark.parametrize("fit_intercept", [True, False])
+@pytest.mark.parametrize(
+    "is_sparse,is_cupy", [(True, False), (False, False), (False, True)]
+)
 def test_fit(fit_intercept, is_sparse, is_cupy):
     _maybe_skip_sparse_error(fit_intercept, is_sparse, is_cupy)
 
-    X, y = make_classification(n_samples=100, n_features=5, chunksize=10, is_sparse=is_sparse)
+    X, y = make_classification(
+        n_samples=100, n_features=5, chunksize=10, is_sparse=is_sparse
+    )
 
     if is_cupy and not is_sparse:
-        cupy = pytest.importorskip('cupy')
+        cupy = pytest.importorskip("cupy")
         X, y = to_dask_cupy_array_xy(X, y, cupy)
 
     lr = LogisticRegression(fit_intercept=fit_intercept)
@@ -72,17 +75,18 @@ def test_fit(fit_intercept, is_sparse, is_cupy):
     lr.predict_proba(X)
 
 
-@pytest.mark.parametrize('fit_intercept', [True, False])
-@pytest.mark.parametrize('is_sparse,is_cupy', [
-                         (True, False),
-                         (False, False),
-                         (False, True)])
+@pytest.mark.parametrize("fit_intercept", [True, False])
+@pytest.mark.parametrize(
+    "is_sparse,is_cupy", [(True, False), (False, False), (False, True)]
+)
 def test_lm(fit_intercept, is_sparse, is_cupy):
     _maybe_skip_sparse_error(fit_intercept, is_sparse, is_cupy)
 
-    X, y = make_regression(n_samples=100, n_features=5, chunksize=10, is_sparse=is_sparse)
+    X, y = make_regression(
+        n_samples=100, n_features=5, chunksize=10, is_sparse=is_sparse
+    )
     if is_cupy and not is_sparse:
-        cupy = pytest.importorskip('cupy')
+        cupy = pytest.importorskip("cupy")
         X, y = to_dask_cupy_array_xy(X, y, cupy)
     lr = LinearRegression(fit_intercept=fit_intercept)
     lr.fit(X, y)
@@ -91,18 +95,17 @@ def test_lm(fit_intercept, is_sparse, is_cupy):
         assert lr.intercept_ is not None
 
 
-@pytest.mark.parametrize('fit_intercept', [True, False])
-@pytest.mark.parametrize('is_sparse,is_cupy', [
-                         (True, False),
-                         (False, False),
-                         (False, True)])
+@pytest.mark.parametrize("fit_intercept", [True, False])
+@pytest.mark.parametrize(
+    "is_sparse,is_cupy", [(True, False), (False, False), (False, True)]
+)
 def test_big(fit_intercept, is_sparse, is_cupy):
     _maybe_skip_sparse_error(fit_intercept, is_sparse, is_cupy)
 
-    with dask.config.set(scheduler='synchronous'):
+    with dask.config.set(scheduler="synchronous"):
         X, y = make_classification(is_sparse=is_sparse)
         if is_cupy and not is_sparse:
-            cupy = pytest.importorskip('cupy')
+            cupy = pytest.importorskip("cupy")
             X, y = to_dask_cupy_array_xy(X, y, cupy)
         lr = LogisticRegression(fit_intercept=fit_intercept)
         lr.fit(X, y)
@@ -112,18 +115,17 @@ def test_big(fit_intercept, is_sparse, is_cupy):
         assert lr.intercept_ is not None
 
 
-@pytest.mark.parametrize('fit_intercept', [True, False])
-@pytest.mark.parametrize('is_sparse,is_cupy', [
-                         (True, False),
-                         (False, False),
-                         (False, True)])
+@pytest.mark.parametrize("fit_intercept", [True, False])
+@pytest.mark.parametrize(
+    "is_sparse,is_cupy", [(True, False), (False, False), (False, True)]
+)
 def test_poisson_fit(fit_intercept, is_sparse, is_cupy):
     _maybe_skip_sparse_error(fit_intercept, is_sparse, is_cupy)
 
-    with dask.config.set(scheduler='synchronous'):
+    with dask.config.set(scheduler="synchronous"):
         X, y = make_poisson(is_sparse=is_sparse)
         if is_cupy and not is_sparse:
-            cupy = pytest.importorskip('cupy')
+            cupy = pytest.importorskip("cupy")
             X, y = to_dask_cupy_array_xy(X, y, cupy)
         pr = PoissonRegression(fit_intercept=fit_intercept)
         pr.fit(X, y)
@@ -135,6 +137,7 @@ def test_poisson_fit(fit_intercept, is_sparse, is_cupy):
 
 def test_in_pipeline():
     from sklearn.pipeline import make_pipeline
+
     X, y = make_classification(n_samples=100, n_features=5, chunksize=10)
     pipe = make_pipeline(DoNothingTransformer(), LogisticRegression())
     pipe.fit(X, y)
@@ -142,12 +145,11 @@ def test_in_pipeline():
 
 def test_gridsearch():
     from sklearn.pipeline import make_pipeline
-    dcv = pytest.importorskip('dask_searchcv')
+
+    dcv = pytest.importorskip("dask_searchcv")
 
     X, y = make_classification(n_samples=100, n_features=5, chunksize=10)
-    grid = {
-        'logisticregression__lamduh': [.001, .01, .1, .5]
-    }
+    grid = {"logisticregression__lamduh": [0.001, 0.01, 0.1, 0.5]}
     pipe = make_pipeline(DoNothingTransformer(), LogisticRegression())
     search = dcv.GridSearchCV(pipe, grid, cv=3)
     search.fit(X, y)
