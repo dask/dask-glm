@@ -15,7 +15,6 @@ It offers a `scikit-learn`_ compatible API for specifying your model.
    :maxdepth: 2
    :caption: Contents:
 
-   estimators
    examples
    api
 
