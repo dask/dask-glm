@@ -5,14 +5,6 @@
 API Reference
 -------------
 
-.. _api.estimators:
-
-Estimators
-==========
-
-.. automodule:: dask_glm.estimators
-   :members:
-
 .. _api.families:
 
 Families
