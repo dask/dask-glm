@@ -85,8 +85,17 @@ def compute_stepsize_dask(
     return stepSize, beta, Xbeta, func
 
 
+def _compute_batch(chunk, batch_size=1, seed=42):
+    n_block = chunk.shape[0]
+    rnd = np.random.RandomState(seed)
+    i = rnd.permutation(n_block)
+    return chunk[i[:batch_size]]
+
+
 @normalize
-def gradient_descent(X, y, max_iter=100, tol=1e-14, family=Logistic, **kwargs):
+def gradient_descent(X, y, max_iter=100, tol=1e-14, family=Logistic,
+                     approx_grad=False, initial_batch_size=None, armijoMult=1e-1,
+                     seed=42, **kwargs):
     """
     Michael Grant's implementation of Gradient Descent.
 
@@ -101,23 +110,56 @@ def gradient_descent(X, y, max_iter=100, tol=1e-14, family=Logistic, **kwargs):
         Maximum allowed change from prior iteration required to
         declare convergence
     family : Family
+    approx_grad : bool
+        If True (default False), approximate the gradient with a subset of
+        examples in X and y. When the number of examples is very large this can
+        result in speed gains, and is described in :cite:`friedlander2012hybrid`.
+    initial_batch_size : int
+        The initial batch size when approximating the gradient. Only used when
+        `approx_grad == True`. Defaults to `min(n // n_chunks, n // 100)`
 
     Returns
     -------
     beta : array-like, shape (n_features,)
+
+    References
+    ----------
+    @article{friedlander2012hybrid,
+        Author = {Friedlander, Michael P and Schmidt, Mark},
+        Journal = {SIAM Journal on Scientific Computing},
+        Number = {3},
+        Pages = {A1380--A1405},
+        Title = {Hybrid deterministic-stochastic methods for data fitting},
+        Volume = {34},
+        Year = {2012}}
+
     """
     loglike, gradient = family.loglike, family.gradient
     n, p = X.shape
     firstBacktrackMult = 0.1
     nextBacktrackMult = 0.5
-    armijoMult = 0.1
+    armijoMult = 1e-1
     stepGrowth = 1.25
     stepSize = 1.0
     recalcRate = 10
     backtrackMult = firstBacktrackMult
     beta = np.zeros_like(X._meta, shape=p)
 
+    if approx_grad:
+        n_chunks = max(len(c) for c in X.chunks)
+        batch_size = n_chunks + 1 \
+                     if initial_batch_size is None else initial_batch_size
+        keep = {'X': X, 'y': y}
+
     for k in range(max_iter):
+        if approx_grad:
+            block_batch_size = batch_size // n_chunks
+            kwargs = {'batch_size': block_batch_size, 'seed': k + seed}
+            X = keep['X'].map_blocks(_compute_batch, **kwargs)
+            y = keep['y'].map_blocks(_compute_batch, **kwargs)
+            #  Xbeta = X.dot(beta)
+            #  func = loglike(Xbeta, y)
+
         # how necessary is this recalculation?
         if k % recalcRate == 0:
             Xbeta = X.dot(beta)
