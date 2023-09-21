@@ -3,16 +3,21 @@ Models following scikit-learn's estimator API.
 """
 from sklearn.base import BaseEstimator
 
-from . import algorithms
-from . import families
+from . import algorithms, families
 from .utils import (
-    sigmoid, dot, add_intercept, mean_squared_error,
-    accuracy_score, exp, poisson_deviance, is_dask_array_sparse
+    accuracy_score,
+    add_intercept,
+    dot,
+    exp,
+    is_dask_array_sparse,
+    mean_squared_error,
+    poisson_deviance,
+    sigmoid,
 )
 
 
 class _GLM(BaseEstimator):
-    """ Base estimator for Generalized Linear Models
+    """Base estimator for Generalized Linear Models
 
     You should not use this class directly, you should use one of its subclasses
     instead.
@@ -26,13 +31,24 @@ class _GLM(BaseEstimator):
     LogisticRegression
     PoissonRegression
     """
+
     @property
     def family(self):
-        """ The family for which this is the estimator """
+        """The family for which this is the estimator"""
 
-    def __init__(self, fit_intercept=True, solver='admm', regularizer='l2',
-                 max_iter=100, tol=1e-4, lamduh=1.0, rho=1,
-                 over_relax=1, abstol=1e-4, reltol=1e-2):
+    def __init__(
+        self,
+        fit_intercept=True,
+        solver="admm",
+        regularizer="l2",
+        max_iter=100,
+        tol=1e-4,
+        lamduh=1.0,
+        rho=1,
+        over_relax=1,
+        abstol=1e-4,
+        reltol=1e-2,
+    ):
         self.fit_intercept = fit_intercept
         self.solver = solver
         self.regularizer = regularizer
@@ -48,16 +64,15 @@ class _GLM(BaseEstimator):
         self.intercept_ = None
         self._coef = None  # coef, maybe with intercept
 
-        fit_kwargs = {'max_iter', 'tol', 'family'}
+        fit_kwargs = {"max_iter", "tol", "family"}
 
-        if solver == 'admm':
-            fit_kwargs.discard('tol')
-            fit_kwargs.update({
-                'regularizer', 'lamduh', 'rho', 'over_relax', 'abstol',
-                'reltol'
-            })
-        elif solver == 'proximal_grad' or solver == 'lbfgs':
-            fit_kwargs.update({'regularizer', 'lamduh'})
+        if solver == "admm":
+            fit_kwargs.discard("tol")
+            fit_kwargs.update(
+                {"regularizer", "lamduh", "rho", "over_relax", "abstol", "reltol"}
+            )
+        elif solver == "proximal_grad" or solver == "lbfgs":
+            fit_kwargs.update({"regularizer", "lamduh"})
 
         self._fit_kwargs = {k: getattr(self, k) for k in fit_kwargs}
 
@@ -65,7 +80,7 @@ class _GLM(BaseEstimator):
         X_ = self._maybe_add_intercept(X)
         fit_kwargs = dict(self._fit_kwargs)
         if is_dask_array_sparse(X):
-            fit_kwargs['normalize'] = False
+            fit_kwargs["normalize"] = False
 
         self._coef = algorithms._solvers[self.solver](X_, y, **fit_kwargs)
 
@@ -124,10 +139,11 @@ class LogisticRegression(_GLM):
     >>> est.predict_proba(X)
     >>> est.score(X, y)
     """
+
     family = families.Logistic
 
     def predict(self, X):
-        return self.predict_proba(X) > .5  # TODO: verify, multiclass broken
+        return self.predict_proba(X) > 0.5  # TODO: verify, multiclass broken
 
     def predict_proba(self, X):
         X_ = self._maybe_add_intercept(X)
@@ -177,6 +193,7 @@ class LinearRegression(_GLM):
     >>> est.predict(X)
     >>> est.score(X, y)
     """
+
     family = families.Normal
 
     def predict(self, X):
@@ -227,6 +244,7 @@ class PoissonRegression(_GLM):
     >>> est.predict(X)
     >>> est.get_deviance(X, y)
     """
+
     family = families.Poisson
 
     def predict(self, X):
