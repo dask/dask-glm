@@ -37,22 +37,34 @@ def make_intercept_data(N, p, seed=20009):
     return X, y
 
 
+def make_array_type(type, *arrays):
+    if type == "cupy":
+        cupy = pytest.importorskip("cupy")
+        return to_dask_cupy_array_xy(*arrays, cupy)
+    elif type == "numpy":
+        return tuple(a.compute() if hasattr(a, "compute") else a for a in arrays)
+    else:
+        return arrays
+
+
+def maybe_compute(expr):
+    return expr.compute() if hasattr(expr, "compute") else expr
+
+
 @pytest.mark.parametrize("opt", [lbfgs, newton, gradient_descent])
 @pytest.mark.parametrize(
     "N, p, seed,", [(100, 2, 20009), (250, 12, 90210), (95, 6, 70605)]
 )
-@pytest.mark.parametrize("is_cupy", [True, False])
-def test_methods(N, p, seed, opt, is_cupy):
+@pytest.mark.parametrize("array_type", ["dask", "numpy", "cupy"])
+def test_methods(N, p, seed, opt, array_type):
     X, y = make_intercept_data(N, p, seed=seed)
-
-    if is_cupy:
-        cupy = pytest.importorskip("cupy")
-        X, y = to_dask_cupy_array_xy(X, y, cupy)
+    X, y = make_array_type(array_type, X, y)
 
     coefs = opt(X, y)
-    p = sigmoid(X.dot(coefs).compute())
+    dot = maybe_compute(X.dot(coefs))
+    p = sigmoid(dot)
 
-    y_sum = y.compute().sum()
+    y_sum = maybe_compute(y).sum()
     p_sum = p.sum()
     assert np.isclose(y_sum, p_sum, atol=1e-1)
 
@@ -68,25 +80,24 @@ def test_methods(N, p, seed, opt, is_cupy):
 @pytest.mark.parametrize("N", [1000])
 @pytest.mark.parametrize("nchunks", [1, 10])
 @pytest.mark.parametrize("family", [Logistic, Normal, Poisson])
-@pytest.mark.parametrize("is_cupy", [True, False])
-def test_basic_unreg_descent(func, kwargs, N, nchunks, family, is_cupy):
+@pytest.mark.parametrize("array_type", ["dask", "numpy", "cupy"])
+def test_basic_unreg_descent(func, kwargs, N, nchunks, family, array_type):
     beta = np.random.normal(size=2)
     M = len(beta)
     X = da.random.random((N, M), chunks=(N // nchunks, M))
     y = make_y(X, beta=np.array(beta), chunks=(N // nchunks,))
 
-    if is_cupy:
-        cupy = pytest.importorskip("cupy")
-        X, y = to_dask_cupy_array_xy(X, y, cupy)
+    X, y = make_array_type(array_type, X, y)
 
-    X, y = persist(X, y)
+    if array_type != "numpy":
+        X, y = persist(X, y)
 
     result = func(X, y, family=family, **kwargs)
     test_vec = np.random.normal(size=2)
     test_vec = maybe_to_cupy(test_vec, X)
 
-    opt = family.pointwise_loss(result, X, y).compute()
-    test_val = family.pointwise_loss(test_vec, X, y).compute()
+    opt = maybe_compute(family.pointwise_loss(result, X, y))
+    test_val = maybe_compute(family.pointwise_loss(test_vec, X, y))
 
     assert opt < test_val
 
@@ -103,18 +114,17 @@ def test_basic_unreg_descent(func, kwargs, N, nchunks, family, is_cupy):
 @pytest.mark.parametrize("family", [Logistic, Normal, Poisson])
 @pytest.mark.parametrize("lam", [0.01, 1.2, 4.05])
 @pytest.mark.parametrize("reg", [r() for r in Regularizer.__subclasses__()])
-@pytest.mark.parametrize("is_cupy", [True, False])
-def test_basic_reg_descent(func, kwargs, N, nchunks, family, lam, reg, is_cupy):
+@pytest.mark.parametrize("array_type", ["dask", "numpy", "cupy"])
+def test_basic_reg_descent(func, kwargs, N, nchunks, family, lam, reg, array_type):
     beta = np.random.normal(size=2)
     M = len(beta)
     X = da.random.random((N, M), chunks=(N // nchunks, M))
     y = make_y(X, beta=np.array(beta), chunks=(N // nchunks,))
 
-    if is_cupy:
-        cupy = pytest.importorskip("cupy")
-        X, y = to_dask_cupy_array_xy(X, y, cupy)
+    X, y = make_array_type(array_type, X, y)
 
-    X, y = persist(X, y)
+    if array_type != "numpy":
+        X, y = persist(X, y)
 
     result = func(X, y, family=family, lamduh=lam, regularizer=reg, **kwargs)
     test_vec = np.random.normal(size=2)
@@ -122,8 +132,8 @@ def test_basic_reg_descent(func, kwargs, N, nchunks, family, lam, reg, is_cupy):
 
     f = reg.add_reg_f(family.pointwise_loss, lam)
 
-    opt = f(result, X, y).compute()
-    test_val = f(test_vec, X, y).compute()
+    opt = maybe_compute(f(result, X, y))
+    test_val = maybe_compute(f(test_vec, X, y))
 
     assert opt < test_val
 
@@ -138,12 +148,10 @@ def test_basic_reg_descent(func, kwargs, N, nchunks, family, lam, reg, is_cupy):
     ],
 )
 @pytest.mark.parametrize("scheduler", ["synchronous", "threading", "multiprocessing"])
-@pytest.mark.parametrize("is_cupy", [True, False])
-def test_determinism(func, kwargs, scheduler, is_cupy):
+@pytest.mark.parametrize("array_type", ["dask", "numpy", "cupy"])
+def test_determinism(func, kwargs, scheduler, array_type):
     X, y = make_intercept_data(1000, 10)
-    if is_cupy:
-        cupy = pytest.importorskip("cupy")
-        X, y = to_dask_cupy_array_xy(X, y, cupy)
+    X, y = make_array_type(array_type, X, y)
 
     with dask.config.set(scheduler=scheduler):
         a = func(X, y, **kwargs)
