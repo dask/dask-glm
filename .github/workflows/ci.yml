@@ -31,5 +31,5 @@ jobs:
       - name: Run pytest
         shell: bash -l {0}
         run: |
-          pip install pytest
-          pytest dask_glm
+          pip install pytest pytest-xdist
+          pytest dask_glm -n auto

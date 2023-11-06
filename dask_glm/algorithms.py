@@ -20,6 +20,7 @@ from dask_glm.utils import (
     maybe_to_cupy,
     normalize,
     scatter_array,
+    zeros,
 )
 
 
@@ -115,7 +116,7 @@ def gradient_descent(X, y, max_iter=100, tol=1e-14, family=Logistic, **kwargs):
     stepSize = 1.0
     recalcRate = 10
     backtrackMult = firstBacktrackMult
-    beta = np.zeros_like(X._meta, shape=p)
+    beta = zeros(shape=p, arr=getattr(X, "_meta", None))
 
     for k in range(max_iter):
         # how necessary is this recalculation?
@@ -188,7 +189,7 @@ def newton(X, y, max_iter=50, tol=1e-8, family=Logistic, **kwargs):
     """
     gradient, hessian = family.gradient, family.hessian
     n, p = X.shape
-    beta = np.zeros_like(X._meta, shape=p)
+    beta = zeros(shape=p, arr=getattr(X, "_meta", None))
     Xbeta = dot(X, beta)
 
     iter_count = 0
@@ -457,7 +458,7 @@ def proximal_grad(
     stepSize = 1.0
     recalcRate = 10
     backtrackMult = firstBacktrackMult
-    beta = np.zeros_like(X._meta, shape=p)
+    beta = zeros(shape=p, arr=getattr(X, "_meta", None))
     regularizer = Regularizer.get(regularizer)
 
     for k in range(max_iter):

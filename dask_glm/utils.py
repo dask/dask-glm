@@ -26,7 +26,7 @@ def normalize(algo):
             mean = (
                 mean
                 if len(intercept_idx[0])
-                else np.zeros_like(X._meta, shape=mean.shape)
+                else zeros(mean.shape, getattr(X, "_meta", None))
             )
             Xn = (X - mean) / std
             out = algo(Xn, y, *args, **kwargs).copy()
@@ -37,6 +37,13 @@ def normalize(algo):
             return algo(X, y, *args, **kwargs)
 
     return normalize_inputs
+
+
+def zeros(shape, arr=None, **kwargs):
+    if arr:
+        return np.zeros_like(arr, shape=shape, **kwargs)
+    else:
+        return np.zeros(shape=shape, **kwargs)
 
 
 def sigmoid(x):
