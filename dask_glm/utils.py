@@ -40,7 +40,7 @@ def normalize(algo):
 
 
 def zeros(shape, arr=None, **kwargs):
-    if arr:
+    if arr is not None and arr.size > 0:
         return np.zeros_like(arr, shape=shape, **kwargs)
     else:
         return np.zeros(shape=shape, **kwargs)
