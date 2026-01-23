@@ -1,63 +1,36 @@
-name: Build and maybe upload to PyPI
+name: Build and publish to PyPI
 
 on:
   push:
+    tags:
+      - '*'
   pull_request:
-  release:
-    types:
-      - released
-      - prereleased
+  workflow_dispatch:
 
 jobs:
-  artifacts:
-    name: Build wheels on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest]
-
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-      - uses: actions/setup-python@v4
-        with:
-          python-version: '3.10' 
-      - name: Build wheels
-        run: pip wheel . -w dist
-      - name: Build Source Dist
-        run: python setup.py sdist
-      - uses: actions/upload-artifact@v3
-        with:
-          name: wheel
-          path: ./dist/dask_glm*
-      - uses: actions/upload-artifact@v3
-        with:
-          name: sdist
-          path: ./dist/dask-glm*
-
-  list_artifacts:
-    name: List build artifacts
-    needs: [artifacts]
+  build:
+    name: Build distribution
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v3
+      - uses: actions/checkout@v4
         with:
-          name: sdist
-          path: dist
-      - uses: actions/download-artifact@v3
-        with:
-          name: wheel
-          path: dist
-      - name: test
-        run: |
-          ls
-          ls dist
+          fetch-depth: 0
 
-  upload_pypi:
-    needs: [artifacts]
-    if: "startsWith(github.ref, 'refs/tags/')"
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Build wheel and sdist
+        run: uv build
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  publish:
+    name: Publish to PyPI
+    needs: [build]
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     environment:
       name: releases
@@ -65,15 +38,9 @@ jobs:
     permissions:
       id-token: write
     steps:
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
-          name: sdist
-          path: dist
-      - uses: actions/download-artifact@v3
-        with:
-          name: wheel
-          path: dist
+          name: dist
+          path: dist/
+
       - uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          packages-dir: dist
-          skip-existing: true
