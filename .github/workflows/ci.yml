@@ -9,27 +9,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.9", "3.10", "3.11"]
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
 
     steps:
       - name: Checkout source
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
-      - name: Setup Conda Environment
-        uses: conda-incubator/setup-miniconda@v2.2.0
-        with:
-          miniforge-variant: Mambaforge
-          miniforge-version: latest
-          use-mamba: true
-          python-version: ${{ matrix.python-version }}
-          activate-environment: dask-glm
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
 
       - name: Install dask_glm
-        shell: bash -l {0}
-        run: pip install -e .
+        run: uv sync --python ${{ matrix.python-version }} --extra dev
 
       - name: Run pytest
-        shell: bash -l {0}
-        run: |
-          pip install pytest pytest-xdist
-          pytest dask_glm -n auto
+        run: uv run pytest dask_glm

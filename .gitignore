@@ -2,6 +2,7 @@
 *.swpi
 *.cache
 *.coverage
+uv.lock
 
 # Distribution / packaging
 .Python
