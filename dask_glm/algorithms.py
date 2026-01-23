@@ -1,7 +1,5 @@
 """Optimization algorithms for solving minimizaiton problems."""
 
-from __future__ import absolute_import, division, print_function
-
 import functools
 
 import dask
