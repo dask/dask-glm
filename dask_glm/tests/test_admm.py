@@ -9,7 +9,7 @@ from dask_glm.regularizers import L1
 from dask_glm.utils import make_y, to_dask_cupy_array_xy
 
 
-@pytest.mark.parametrize("N", [1000, 10000])
+@pytest.mark.parametrize("N", [1000, pytest.param(10000, marks=pytest.mark.slow)])
 @pytest.mark.parametrize(
     "beta",
     [
@@ -47,6 +47,7 @@ def test_local_update(N, beta, family):
     assert np.allclose(result, z, atol=2e-3)
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize("N", [1000, 10000])
 @pytest.mark.parametrize("nchunks", [5, 10])
 @pytest.mark.parametrize("p", [1, 5, 10])
