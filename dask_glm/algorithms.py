@@ -1,5 +1,4 @@
-"""Optimization algorithms for solving minimizaiton problems.
-"""
+"""Optimization algorithms for solving minimizaiton problems."""
 
 from __future__ import absolute_import, division, print_function
 
@@ -233,7 +232,7 @@ def admm(
     abstol=1e-4,
     reltol=1e-2,
     family=Logistic,
-    **kwargs
+    **kwargs,
 ):
     """
     Alternating Direction Method of Multipliers
@@ -358,7 +357,7 @@ def lbfgs(
     tol=1e-4,
     family=Logistic,
     verbose=False,
-    **kwargs
+    **kwargs,
 ):
     """L-BFGS solver using scipy.optimize implementation
 
@@ -428,7 +427,7 @@ def proximal_grad(
     family=Logistic,
     max_iter=100,
     tol=1e-8,
-    **kwargs
+    **kwargs,
 ):
     """
     Proximal Gradient Method

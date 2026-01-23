@@ -54,9 +54,12 @@ def _maybe_skip_sparse_error(fit_intercept, is_sparse, is_cupy):
         pytest.xfail(f"TODO: {msg}")
 
 
-@pytest.mark.parametrize("fit_intercept", [pytest.param(True, marks=pytest.mark.slow), False])
 @pytest.mark.parametrize(
-    "is_sparse,is_cupy", [pytest.param(True, False, marks=pytest.mark.slow), (False, False), (False, True)]
+    "fit_intercept", [pytest.param(True, marks=pytest.mark.slow), False]
+)
+@pytest.mark.parametrize(
+    "is_sparse,is_cupy",
+    [pytest.param(True, False, marks=pytest.mark.slow), (False, False), (False, True)],
 )
 def test_fit(fit_intercept, is_sparse, is_cupy):
     _maybe_skip_sparse_error(fit_intercept, is_sparse, is_cupy)
@@ -75,9 +78,12 @@ def test_fit(fit_intercept, is_sparse, is_cupy):
     lr.predict_proba(X)
 
 
-@pytest.mark.parametrize("fit_intercept", [pytest.param(True, marks=pytest.mark.slow), False])
 @pytest.mark.parametrize(
-    "is_sparse,is_cupy", [pytest.param(True, False, marks=pytest.mark.slow), (False, False), (False, True)]
+    "fit_intercept", [pytest.param(True, marks=pytest.mark.slow), False]
+)
+@pytest.mark.parametrize(
+    "is_sparse,is_cupy",
+    [pytest.param(True, False, marks=pytest.mark.slow), (False, False), (False, True)],
 )
 def test_lm(fit_intercept, is_sparse, is_cupy):
     _maybe_skip_sparse_error(fit_intercept, is_sparse, is_cupy)

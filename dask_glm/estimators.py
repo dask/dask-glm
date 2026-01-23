@@ -1,6 +1,7 @@
 """
 Models following scikit-learn's estimator API.
 """
+
 from sklearn.base import BaseEstimator
 
 from . import algorithms, families
