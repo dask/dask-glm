@@ -64,4 +64,3 @@ local_scheme = "no-local-version"
 [tool.pytest.ini_options]
 testpaths = ["dask_glm/tests"]
 addopts = "-v"
-markers = ["slow: mark test as slow to run"]
