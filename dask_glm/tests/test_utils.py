@@ -129,7 +129,7 @@ def test_add_intercept_sparse_dask():
 
 
 def test_sparse():
-    x = sparse.COO({(0, 0): 1, (1, 2): 2, (2, 1): 3})
+    x = sparse.COO({(0, 0): 1, (1, 2): 2, (2, 1): 3}, shape=(3, 3))
     y = x.todense()
     assert utils.sum(x) == utils.sum(x.todense())
     for func in [utils.sigmoid, utils.sum, utils.exp]:
@@ -174,16 +174,16 @@ def test_dot_with_cupy():
 def test_dot_with_sparse():
     A = sparse.random((1024, 64))
     B = sparse.random((64))
-    ans = sparse.dot(A, B)
+    ans = sparse.dot(A, B).todense()
 
     # dot(sparse.array, sparse.array)
     res = utils.dot(A, B)
-    assert_eq(ans, res)
+    assert_eq(ans, res.todense())
 
     # dot(sparse.array, dask.array)
     res = utils.dot(A, da.from_array(B, chunks=B.shape))
-    assert_eq(ans, res.compute())
+    assert_eq(ans, res.compute().todense())
 
     # dot(dask.array, sparse.array)
     res = utils.dot(da.from_array(A, chunks=A.shape), B)
-    assert_eq(ans, res.compute())
+    assert_eq(ans, res.compute().todense())
