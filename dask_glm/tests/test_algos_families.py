@@ -105,12 +105,12 @@ def test_basic_unreg_descent(func, kwargs, N, nchunks, family, array_type):
 @pytest.mark.parametrize(
     "func,kwargs",
     [
-        (admm, {"abstol": 1e-4}),
+        pytest.param(admm, {"abstol": 1e-4}, marks=pytest.mark.slow),
         (proximal_grad, {"tol": 1e-7}),
     ],
 )
 @pytest.mark.parametrize("N", [1000])
-@pytest.mark.parametrize("nchunks", [1, 10])
+@pytest.mark.parametrize("nchunks", [1, pytest.param(10, marks=pytest.mark.slow)])
 @pytest.mark.parametrize("family", [Logistic, Normal, Poisson])
 @pytest.mark.parametrize("lam", [0.01, 1.2, 4.05])
 @pytest.mark.parametrize("reg", [r() for r in Regularizer.__subclasses__()])
@@ -138,6 +138,7 @@ def test_basic_reg_descent(func, kwargs, N, nchunks, family, lam, reg, array_typ
     assert opt < test_val
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize(
     "func,kwargs",
     [
@@ -167,6 +168,7 @@ except ImportError:
     pass
 else:
 
+    @pytest.mark.slow
     @pytest.mark.parametrize(
         "func,kwargs",
         [
@@ -186,6 +188,7 @@ else:
 
                 assert (a == b).all()
 
+    @pytest.mark.slow
     def test_broadcast_lbfgs_weight(loop_in_thread):  # noqa: F811
         with cluster() as (s, [a, b]):
             with Client(s["address"], loop=loop_in_thread) as c:
